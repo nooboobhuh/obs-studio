@@ -10,7 +10,7 @@ animated gif files.
 
    #include <graphics/image-file.h>
 
-.. struct:: gs_image_file
+.. type:: struct gs_image_file
 
    Image file structure
 
@@ -18,7 +18,7 @@ animated gif files.
 
    Texture
 
-.. type:: struct gs_image_file gs_image_file_t
+.. type:: typedef struct gs_image_file gs_image_file_t
 
    Image file type
 

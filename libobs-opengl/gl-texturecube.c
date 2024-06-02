@@ -1,5 +1,5 @@
 /******************************************************************************
-    Copyright (C) 2023 by Lain Bailey <lain@obsproject.com>
+    Copyright (C) 2013 by Hugh Bailey <obs.jim@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ static inline bool upload_texture_cube(struct gs_texture_cube *tex,
 	uint32_t i;
 
 	if (!num_levels)
-		num_levels = gs_get_total_levels(tex->size, tex->size, 1);
+		num_levels = gs_get_total_levels(tex->size, tex->size);
 
 	for (i = 0; i < 6; i++) {
 		GLenum target = GL_TEXTURE_CUBE_MAP_POSITIVE_X + i;

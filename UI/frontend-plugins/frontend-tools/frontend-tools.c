@@ -1,4 +1,5 @@
 #include <obs-module.h>
+#include "frontend-tools-config.h"
 
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE("frontend-tools", "en-US")
@@ -6,7 +7,7 @@ OBS_MODULE_USE_DEFAULT_LOCALE("frontend-tools", "en-US")
 void InitSceneSwitcher();
 void FreeSceneSwitcher();
 
-#if defined(_WIN32)
+#if defined(_WIN32) && BUILD_CAPTIONS
 void InitCaptions();
 void FreeCaptions();
 #endif
@@ -14,19 +15,19 @@ void FreeCaptions();
 void InitOutputTimer();
 void FreeOutputTimer();
 
-#if defined(ENABLE_SCRIPTING)
+#if ENABLE_SCRIPTING
 void InitScripts();
 void FreeScripts();
 #endif
 
 bool obs_module_load(void)
 {
-#if defined(_WIN32)
+#if defined(_WIN32) && BUILD_CAPTIONS
 	InitCaptions();
 #endif
 	InitSceneSwitcher();
 	InitOutputTimer();
-#if defined(ENABLE_SCRIPTING)
+#if ENABLE_SCRIPTING
 	InitScripts();
 #endif
 	return true;
@@ -34,12 +35,12 @@ bool obs_module_load(void)
 
 void obs_module_unload(void)
 {
-#if defined(_WIN32)
+#if defined(_WIN32) && BUILD_CAPTIONS
 	FreeCaptions();
 #endif
 	FreeSceneSwitcher();
 	FreeOutputTimer();
-#if defined(ENABLE_SCRIPTING)
+#if ENABLE_SCRIPTING
 	FreeScripts();
 #endif
 }

@@ -26,16 +26,16 @@ struct SceneSwitch {
 	regex re;
 
 	inline SceneSwitch(OBSWeakSource scene_, const char *window_)
-		: scene(scene_),
-		  window(window_),
-		  re(window_)
+		: scene(scene_), window(window_), re(window_)
 	{
 	}
 };
 
 static inline bool WeakSourceValid(obs_weak_source_t *ws)
 {
-	OBSSourceAutoRelease source = obs_weak_source_get_source(ws);
+	obs_source_t *source = obs_weak_source_get_source(ws);
+	if (source)
+		obs_source_release(source);
 	return !!source;
 }
 
@@ -49,6 +49,7 @@ struct SwitcherData {
 	OBSWeakSource nonMatchingScene;
 	int interval = DEFAULT_INTERVAL;
 	bool switchIfNotMatching = false;
+	bool startAtLaunch = false;
 
 	void Thread();
 	void Start();
@@ -80,8 +81,7 @@ static inline QString MakeSwitchName(const QString &scene,
 }
 
 SceneSwitcher::SceneSwitcher(QWidget *parent)
-	: QDialog(parent),
-	  ui(new Ui_SceneSwitcher)
+	: QDialog(parent), ui(new Ui_SceneSwitcher)
 {
 	ui->setupUi(this);
 
@@ -130,10 +130,9 @@ SceneSwitcher::SceneSwitcher(QWidget *parent)
 		SetStopped();
 
 	loading = false;
-	connect(this, &QDialog::finished, this, &SceneSwitcher::finished);
 }
 
-void SceneSwitcher::finished()
+void SceneSwitcher::closeEvent(QCloseEvent *)
 {
 	obs_frontend_save();
 }
@@ -258,13 +257,24 @@ void SceneSwitcher::on_remove_clicked()
 	delete item;
 }
 
+void SceneSwitcher::on_startAtLaunch_toggled(bool value)
+{
+	if (loading)
+		return;
+
+	lock_guard<mutex> lock(switcher->m);
+	switcher->startAtLaunch = value;
+}
+
 void SceneSwitcher::UpdateNonMatchingScene(const QString &name)
 {
-	OBSSourceAutoRelease scene =
-		obs_get_source_by_name(name.toUtf8().constData());
-	OBSWeakSourceAutoRelease ws = obs_source_get_weak_source(scene);
+	obs_source_t *scene = obs_get_source_by_name(name.toUtf8().constData());
+	obs_weak_source_t *ws = obs_source_get_weak_source(scene);
 
-	switcher->nonMatchingScene = ws.Get();
+	switcher->nonMatchingScene = ws;
+
+	obs_weak_source_release(ws);
+	obs_source_release(scene);
 }
 
 void SceneSwitcher::on_noMatchDontSwitch_clicked()
@@ -331,15 +341,15 @@ static void SaveSceneSwitcher(obs_data_t *save_data, bool saving, void *)
 {
 	if (saving) {
 		lock_guard<mutex> lock(switcher->m);
-		OBSDataAutoRelease obj = obs_data_create();
-		OBSDataArrayAutoRelease array = obs_data_array_create();
+		obs_data_t *obj = obs_data_create();
+		obs_data_array_t *array = obs_data_array_create();
 
 		switcher->Prune();
 
 		for (SceneSwitch &s : switcher->switches) {
-			OBSDataAutoRelease array_obj = obs_data_create();
+			obs_data_t *array_obj = obs_data_create();
 
-			OBSSourceAutoRelease source =
+			obs_source_t *source =
 				obs_weak_source_get_source(s.scene);
 			if (source) {
 				const char *n = obs_source_get_name(source);
@@ -347,7 +357,10 @@ static void SaveSceneSwitcher(obs_data_t *save_data, bool saving, void *)
 				obs_data_set_string(array_obj, "window_title",
 						    s.window.c_str());
 				obs_data_array_push_back(array, array_obj);
+				obs_source_release(source);
 			}
+
+			obs_data_release(array_obj);
 		}
 
 		string nonMatchingSceneName =
@@ -362,13 +375,15 @@ static void SaveSceneSwitcher(obs_data_t *save_data, bool saving, void *)
 		obs_data_set_array(obj, "switches", array);
 
 		obs_data_set_obj(save_data, "auto-scene-switcher", obj);
+
+		obs_data_array_release(array);
+		obs_data_release(obj);
 	} else {
 		switcher->m.lock();
 
-		OBSDataAutoRelease obj =
+		obs_data_t *obj =
 			obs_data_get_obj(save_data, "auto-scene-switcher");
-		OBSDataArrayAutoRelease array =
-			obs_data_get_array(obj, "switches");
+		obs_data_array_t *array = obs_data_get_array(obj, "switches");
 		size_t count = obs_data_array_count(array);
 
 		if (!obj)
@@ -389,8 +404,7 @@ static void SaveSceneSwitcher(obs_data_t *save_data, bool saving, void *)
 		switcher->switches.clear();
 
 		for (size_t i = 0; i < count; i++) {
-			OBSDataAutoRelease array_obj =
-				obs_data_array_item(array, i);
+			obs_data_t *array_obj = obs_data_array_item(array, i);
 
 			const char *scene =
 				obs_data_get_string(array_obj, "scene");
@@ -399,7 +413,12 @@ static void SaveSceneSwitcher(obs_data_t *save_data, bool saving, void *)
 
 			switcher->switches.emplace_back(
 				GetWeakSourceByName(scene), window);
+
+			obs_data_release(array_obj);
 		}
+
+		obs_data_array_release(array);
+		obs_data_release(obj);
 
 		switcher->m.unlock();
 
@@ -465,13 +484,16 @@ void SwitcherData::Thread()
 			}
 
 			if (match) {
-				OBSSourceAutoRelease source =
+				obs_source_t *source =
 					obs_weak_source_get_source(scene);
-				OBSSourceAutoRelease currentSource =
+				obs_source_t *currentSource =
 					obs_frontend_get_current_scene();
 
 				if (source && source != currentSource)
 					obs_frontend_set_current_scene(source);
+
+				obs_source_release(currentSource);
+				obs_source_release(source);
 			}
 		}
 
@@ -499,8 +521,6 @@ void SwitcherData::Stop()
 
 extern "C" void FreeSceneSwitcher()
 {
-	CleanupSceneSwitcher();
-
 	delete switcher;
 	switcher = nullptr;
 }

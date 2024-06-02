@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Lain Bailey <lain@obsproject.com>
+ * Copyright (c) 2013-2014 Hugh Bailey <obs.jim@gmail.com>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,10 +26,12 @@
 
 #include "c99defs.h"
 
-#ifndef _MSC_VER
+#ifdef _MSC_VER
+#include "../../deps/w32-pthreads/pthread.h"
+#else
 #include <errno.h>
-#endif
 #include <pthread.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -49,22 +51,6 @@ static inline void pthread_mutex_init_value(pthread_mutex_t *mutex)
 		return;
 
 	*mutex = init_val;
-}
-
-static inline int pthread_mutex_init_recursive(pthread_mutex_t *mutex)
-{
-	pthread_mutexattr_t attr;
-	int ret = pthread_mutexattr_init(&attr);
-	if (ret == 0) {
-		ret = pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-		if (ret == 0) {
-			ret = pthread_mutex_init(mutex, &attr);
-		}
-
-		pthread_mutexattr_destroy(&attr);
-	}
-
-	return ret;
 }
 
 enum os_event_type {

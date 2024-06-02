@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Lain Bailey <lain@obsproject.com>
+ * Copyright (c) 2013 Hugh Bailey <obs.jim@gmail.com>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,7 +20,6 @@
 
 #include <string.h>
 #include <stdarg.h>
-#include <utility>
 
 #include "bmem.h"
 #include "config-file.h"
@@ -37,7 +36,7 @@ template<typename T> class BPtr {
 
 public:
 	inline BPtr(T *p = nullptr) : ptr(p) {}
-	inline BPtr(BPtr &&other) { *this = std::move(other); }
+	inline BPtr(BPtr &&other) : ptr(other.ptr) { other.ptr = nullptr; }
 	inline ~BPtr() { bfree(ptr); }
 
 	inline T *operator=(T *p)
@@ -46,14 +45,6 @@ public:
 		ptr = p;
 		return p;
 	}
-
-	inline BPtr &operator=(BPtr &&other)
-	{
-		ptr = other.ptr;
-		other.ptr = nullptr;
-		return *this;
-	}
-
 	inline operator T *() { return ptr; }
 	inline T **operator&()
 	{
@@ -77,7 +68,7 @@ class ConfigFile {
 
 public:
 	inline ConfigFile() : config(NULL) {}
-	inline ConfigFile(ConfigFile &&other) noexcept : config(other.config)
+	inline ConfigFile(ConfigFile &&other) : config(other.config)
 	{
 		other.config = nullptr;
 	}
@@ -95,12 +86,6 @@ public:
 		config_t *newConfig = other.config;
 		other.config = config;
 		config = newConfig;
-	}
-
-	inline int OpenString(const char *str)
-	{
-		Close();
-		return config_open_string(&config, str);
 	}
 
 	inline int Open(const char *file, config_open_type openType)
@@ -135,7 +120,7 @@ class TextLookup {
 
 public:
 	inline TextLookup(lookup_t *lookup = nullptr) : lookup(lookup) {}
-	inline TextLookup(TextLookup &&other) noexcept : lookup(other.lookup)
+	inline TextLookup(TextLookup &&other) : lookup(other.lookup)
 	{
 		other.lookup = nullptr;
 	}

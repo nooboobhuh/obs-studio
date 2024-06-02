@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Lain Bailey <lain@obsproject.com>
+ * Copyright (c) 2013 Hugh Bailey <obs.jim@gmail.com>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -28,16 +28,7 @@
 
 #define ALIGNMENT 32
 
-/*
- * Attention, intrepid adventurers, exploring the depths of the libobs code!
- *
- * There used to be a TODO comment here saying that we should use memalign on
- * non-Windows platforms. However, since *nix/POSIX systems do not provide an
- * aligned realloc(), this is currently not (easily) achievable.
- * So while the use of posix_memalign()/memalign() would be a fairly trivial
- * change, it would also ruin our memory alignment for some reallocated memory
- * on those platforms.
- */
+/* TODO: use memalign for non-windows systems */
 #if defined(_WIN32)
 #define ALIGNED_MALLOC 1
 #else
@@ -96,20 +87,19 @@ static void a_free(void *ptr)
 #endif
 }
 
+static struct base_allocator alloc = {a_malloc, a_realloc, a_free};
 static long num_allocs = 0;
+
+void base_set_allocator(struct base_allocator *defs)
+{
+	memcpy(&alloc, defs, sizeof(struct base_allocator));
+}
 
 void *bmalloc(size_t size)
 {
-	if (!size) {
-		blog(LOG_ERROR,
-		     "bmalloc: Allocating 0 bytes is broken behavior, please "
-		     "fix your code! This will crash in future versions of "
-		     "OBS.");
-		size = 1;
-	}
-
-	void *ptr = a_malloc(size);
-
+	void *ptr = alloc.malloc(size);
+	if (!ptr && !size)
+		ptr = alloc.malloc(1);
 	if (!ptr) {
 		os_breakpoint();
 		bcrash("Out of memory while trying to allocate %lu bytes",
@@ -125,16 +115,9 @@ void *brealloc(void *ptr, size_t size)
 	if (!ptr)
 		os_atomic_inc_long(&num_allocs);
 
-	if (!size) {
-		blog(LOG_ERROR,
-		     "brealloc: Allocating 0 bytes is broken behavior, please "
-		     "fix your code! This will crash in future versions of "
-		     "OBS.");
-		size = 1;
-	}
-
-	ptr = a_realloc(ptr, size);
-
+	ptr = alloc.realloc(ptr, size);
+	if (!ptr && !size)
+		ptr = alloc.realloc(ptr, 1);
 	if (!ptr) {
 		os_breakpoint();
 		bcrash("Out of memory while trying to allocate %lu bytes",
@@ -146,10 +129,9 @@ void *brealloc(void *ptr, size_t size)
 
 void bfree(void *ptr)
 {
-	if (ptr) {
+	if (ptr)
 		os_atomic_dec_long(&num_allocs);
-		a_free(ptr);
-	}
+	alloc.free(ptr);
 }
 
 long bnum_allocs(void)
@@ -169,9 +151,4 @@ void *bmemdup(const void *ptr, size_t size)
 		memcpy(out, ptr, size);
 
 	return out;
-}
-
-OBS_DEPRECATED void base_set_allocator(struct base_allocator *defs)
-{
-	UNUSED_PARAMETER(defs);
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-    Copyright (C) 2023 by Lain Bailey <lain@obsproject.com>
+    Copyright (C) 2013 by Hugh Bailey <obs.jim@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -149,33 +149,15 @@ static inline bool gl_bind_renderbuffer(GLenum target, GLuint buffer)
 	return gl_success("glBindRendebuffer");
 }
 
-static inline bool gl_gen_framebuffers(GLsizei num_arrays, GLuint *arrays)
-{
-	glGenFramebuffers(num_arrays, arrays);
-	return gl_success("glGenFramebuffers");
-}
-
 static inline bool gl_bind_framebuffer(GLenum target, GLuint buffer)
 {
 	glBindFramebuffer(target, buffer);
 	return gl_success("glBindFramebuffer");
 }
 
-static inline void gl_delete_framebuffers(GLsizei num_arrays, GLuint *arrays)
-{
-	glDeleteFramebuffers(num_arrays, arrays);
-	gl_success("glDeleteFramebuffers");
-}
-
 static inline bool gl_tex_param_f(GLenum target, GLenum param, GLfloat val)
 {
 	glTexParameterf(target, param, val);
-	return gl_success("glTexParameterf");
-}
-
-static inline bool gl_tex_param_fv(GLenum target, GLenum param, GLfloat *val)
-{
-	glTexParameterfv(target, param, val);
 	return gl_success("glTexParameterf");
 }
 

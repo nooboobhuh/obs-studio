@@ -1,5 +1,5 @@
 /******************************************************************************
-    Copyright (C) 2023 by Lain Bailey <lain@obsproject.com>
+    Copyright (C) 2013 by Hugh Bailey <obs.jim@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -45,10 +45,13 @@ bool gl_init_face(GLenum target, GLenum type, uint32_t num_levels,
 			data++;
 
 		size /= 4;
-		if (width > 1)
-			width /= 2;
-		if (height > 1)
-			height /= 2;
+		width /= 2;
+		height /= 2;
+
+		if (width == 0)
+			width = 1;
+		if (height == 0)
+			height = 1;
 	}
 
 	if (data)

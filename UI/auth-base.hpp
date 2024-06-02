@@ -18,8 +18,7 @@ protected:
 		std::string error;
 
 		ErrorInfo(std::string message_, std::string error_)
-			: message(message_),
-			  error(error_)
+			: message(message_), error(error_)
 		{
 		}
 	};
@@ -28,14 +27,11 @@ public:
 	enum class Type {
 		None,
 		OAuth_StreamKey,
-		OAuth_LinkedAccount,
 	};
 
 	struct Def {
 		std::string service;
 		Type type;
-		bool externalOAuth;
-		bool usesBroadcastFlow;
 	};
 
 	typedef std::function<std::shared_ptr<Auth>()> create_cb;
@@ -45,8 +41,6 @@ public:
 
 	inline Type type() const { return def.type; }
 	inline const char *service() const { return def.service.c_str(); }
-	inline bool external() const { return def.externalOAuth; }
-	inline bool broadcastFlow() const { return def.usesBroadcastFlow; }
 
 	virtual void LoadUI() {}
 
@@ -54,7 +48,6 @@ public:
 
 	static std::shared_ptr<Auth> Create(const std::string &service);
 	static Type AuthType(const std::string &service);
-	static bool External(const std::string &service);
 	static void Load();
 	static void Save();
 

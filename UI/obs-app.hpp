@@ -1,5 +1,5 @@
 /******************************************************************************
-    Copyright (C) 2023 by Lain Bailey <lain@obsproject.com>
+    Copyright (C) 2013 by Hugh Bailey <obs.jim@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,13 +20,6 @@
 #include <QApplication>
 #include <QTranslator>
 #include <QPointer>
-#include <QFileSystemWatcher>
-
-#ifndef _WIN32
-#include <QSocketNotifier>
-#else
-#include <QSessionManager>
-#endif
 #include <obs.hpp>
 #include <util/lexer.h>
 #include <util/profiler.h>
@@ -40,7 +33,6 @@
 #include <deque>
 
 #include "window-main.hpp"
-#include "obs-app-theming.hpp"
 
 std::string CurrentTimeString();
 std::string CurrentDateTimeString();
@@ -48,11 +40,6 @@ std::string GenerateTimeDateFilename(const char *extension,
 				     bool noSpace = false);
 std::string GenerateSpecifiedFilename(const char *extension, bool noSpace,
 				      const char *format);
-std::string GetFormatString(const char *format, const char *prefix,
-			    const char *suffix);
-std::string GetFormatExt(const char *container);
-std::string GetOutputFilename(const char *path, const char *container,
-			      bool noSpace, bool overwrite, const char *format);
 QObject *CreateShortcutFilter();
 
 struct BaseLexer {
@@ -77,28 +64,17 @@ public:
 
 typedef std::function<void()> VoidFunc;
 
-struct UpdateBranch {
-	QString name;
-	QString display_name;
-	QString description;
-	bool is_enabled;
-	bool is_visible;
-};
-
 class OBSApp : public QApplication {
 	Q_OBJECT
 
 private:
 	std::string locale;
-
+	std::string theme;
 	ConfigFile globalConfig;
 	TextLookup textLookup;
+	OBSContext obsContext;
 	QPointer<OBSMainWindow> mainWindow;
 	profiler_name_store_t *profilerNameStore = nullptr;
-	std::vector<UpdateBranch> updateBranches;
-	bool branches_loaded = false;
-
-	bool libobs_initialized = false;
 
 	os_inhibit_t *sleepInhibitor = nullptr;
 	int sleepInhibitRefs = 0;
@@ -118,24 +94,10 @@ private:
 	inline void ResetHotkeyState(bool inFocus);
 
 	QPalette defaultPalette;
-	OBSTheme *currentTheme = nullptr;
-	QHash<QString, OBSTheme> themes;
-	QPointer<QFileSystemWatcher> themeWatcher;
 
-	void FindThemes();
-
-	bool notify(QObject *receiver, QEvent *e) override;
-
-#ifndef _WIN32
-	static int sigintFd[2];
-	QSocketNotifier *snInt = nullptr;
-#else
-private slots:
-	void commitData(QSessionManager &manager);
-#endif
-
-private slots:
-	void themeFileChanged(const QString &);
+	void ParseExtraThemeData(const char *path);
+	void AddExtraThemeColor(QPalette &pal, int group, const char *name,
+				uint32_t color);
 
 public:
 	OBSApp(int &argc, char **argv, profiler_name_store_t *store);
@@ -158,17 +120,8 @@ public:
 
 	inline const char *GetLocale() const { return locale.c_str(); }
 
-	OBSTheme *GetTheme() const { return currentTheme; }
-	QList<OBSTheme> GetThemes() const { return themes.values(); }
-	OBSTheme *GetTheme(const QString &name);
-	bool SetTheme(const QString &name);
-	bool IsThemeDark() const
-	{
-		return currentTheme ? currentTheme->isDark : false;
-	}
-
-	void SetBranchData(const std::string &data);
-	std::vector<UpdateBranch> GetBranches();
+	inline const char *GetTheme() const { return theme.c_str(); }
+	bool SetTheme(std::string name, std::string path = "");
 
 	inline lookup_t *GetTextLookup() const { return textLookup; }
 
@@ -189,10 +142,8 @@ public:
 
 	const char *GetLastCrashLog() const;
 
-	std::string GetVersionString(bool platform = true) const;
+	std::string GetVersionString() const;
 	bool IsPortableMode();
-	bool IsUpdaterDisabled();
-	bool IsMissingFilesCheckDisabled();
 
 	const char *InputAudioSource() const;
 	const char *OutputAudioSource() const;
@@ -223,13 +174,9 @@ public:
 	}
 
 	inline void PopUITranslation() { translatorHooks.pop_front(); }
-#ifndef _WIN32
-	static void SigIntSignalHandler(int);
-#endif
 
 public slots:
 	void Exec(VoidFunc func);
-	void ProcessSigInt();
 
 signals:
 	void StyleChanged();
@@ -256,14 +203,10 @@ inline const char *Str(const char *lookup)
 {
 	return App()->GetString(lookup);
 }
-inline QString QTStr(const char *lookupVal)
-{
-	return QString::fromUtf8(Str(lookupVal));
-}
+#define QTStr(lookupVal) QString::fromUtf8(Str(lookupVal))
 
 bool GetFileSafeName(const char *name, std::string &file);
 bool GetClosestUnusedFileName(std::string &path, const char *extension);
-bool GetUnusedSceneCollectionFile(std::string &name, std::string &file);
 
 bool WindowPositionValid(QRect rect);
 
@@ -275,23 +218,15 @@ static inline int GetProfilePath(char *path, size_t size, const char *file)
 }
 
 extern bool portable_mode;
-extern bool steam;
-extern bool safe_mode;
-extern bool disable_3p_plugins;
+
+extern bool remuxAfterRecord;
+extern std::string remuxFilename;
 
 extern bool opt_start_streaming;
 extern bool opt_start_recording;
 extern bool opt_start_replaybuffer;
-extern bool opt_start_virtualcam;
 extern bool opt_minimize_tray;
 extern bool opt_studio_mode;
 extern bool opt_allow_opengl;
 extern bool opt_always_on_top;
 extern std::string opt_starting_scene;
-extern bool restart;
-extern bool restart_safe;
-
-#ifdef _WIN32
-extern "C" void install_dll_blocklist_hook(void);
-extern "C" void log_blocked_dlls(void);
-#endif

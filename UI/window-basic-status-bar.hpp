@@ -3,40 +3,27 @@
 #include <QStatusBar>
 #include <QPointer>
 #include <QTimer>
+#include <util/platform.h>
 #include <obs.h>
-#include <memory>
 
-class Ui_StatusBarWidget;
-
-class StatusBarWidget : public QWidget {
-	Q_OBJECT
-
-	friend class OBSBasicStatusBar;
-
-private:
-	std::unique_ptr<Ui_StatusBarWidget> ui;
-
-public:
-	StatusBarWidget(QWidget *parent = nullptr);
-	~StatusBarWidget();
-};
+class QLabel;
 
 class OBSBasicStatusBar : public QStatusBar {
 	Q_OBJECT
 
 private:
-	StatusBarWidget *statusWidget = nullptr;
+	QLabel *delayInfo;
+	QLabel *droppedFrames;
+	QLabel *streamTime;
+	QLabel *recordTime;
+	QLabel *cpuUsage;
+	QLabel *kbps;
+	QLabel *statusSquare;
 
-	OBSWeakOutputAutoRelease streamOutput;
-	std::vector<OBSSignal> streamSigs;
+	obs_output_t *streamOutput = nullptr;
 	obs_output_t *recordOutput = nullptr;
 	bool active = false;
 	bool overloadedNotify = true;
-	bool streamPauseIconToggle = false;
-	bool disconnected = false;
-	bool firstCongestionUpdate = false;
-
-	std::vector<float> congestionArray;
 
 	int retries = 0;
 	int totalStreamSeconds = 0;
@@ -52,28 +39,18 @@ private:
 	int startTotalFrameCount = 0;
 	int lastSkippedFrameCount = 0;
 
-	int seconds = 0;
+	int bitrateUpdateSeconds = 0;
 	uint64_t lastBytesSent = 0;
 	uint64_t lastBytesSentTime = 0;
 
-	QPixmap excellentPixmap;
-	QPixmap goodPixmap;
-	QPixmap mediocrePixmap;
-	QPixmap badPixmap;
-	QPixmap disconnectedPixmap;
-	QPixmap inactivePixmap;
-
-	QPixmap recordingActivePixmap;
-	QPixmap recordingPausePixmap;
-	QPixmap recordingPauseInactivePixmap;
-	QPixmap recordingInactivePixmap;
-	QPixmap streamingActivePixmap;
-	QPixmap streamingInactivePixmap;
+	QPixmap transparentPixmap;
+	QPixmap greenPixmap;
+	QPixmap grayPixmap;
+	QPixmap redPixmap;
 
 	float lastCongestion = 0.0f;
 
 	QPointer<QTimer> refreshTimer;
-	QPointer<QTimer> messageTimer;
 
 	obs_output_t *GetOutput();
 
@@ -84,24 +61,16 @@ private:
 	void UpdateBandwidth();
 	void UpdateStreamTime();
 	void UpdateRecordTime();
-	void UpdateRecordTimeLabel();
 	void UpdateDroppedFrames();
 
 	static void OBSOutputReconnect(void *data, calldata_t *params);
 	static void OBSOutputReconnectSuccess(void *data, calldata_t *params);
 
-public slots:
-	void UpdateCPUUsage();
-
-	void clearMessage();
-	void showMessage(const QString &message, int timeout = 0);
-
 private slots:
 	void Reconnect(int seconds);
 	void ReconnectSuccess();
 	void UpdateStatusBar();
-	void UpdateCurrentFPS();
-	void UpdateIcons();
+	void UpdateCPUUsage();
 
 public:
 	OBSBasicStatusBar(QWidget *parent);
@@ -112,8 +81,6 @@ public:
 	void StreamStopped();
 	void RecordingStarted(obs_output_t *output);
 	void RecordingStopped();
-	void RecordingPaused();
-	void RecordingUnpaused();
 
 	void ReconnectClear();
 };

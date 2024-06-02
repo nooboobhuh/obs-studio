@@ -9,7 +9,6 @@ Platform/Utility API Reference (libobs/util)
    reference-libobs-util-circlebuf
    reference-libobs-util-config-file
    reference-libobs-util-darray
-   reference-libobs-util-deque
    reference-libobs-util-dstr
    reference-libobs-util-platform
    reference-libobs-util-profiler

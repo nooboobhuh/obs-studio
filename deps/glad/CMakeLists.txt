@@ -1,33 +1,67 @@
-cmake_minimum_required(VERSION 3.22...3.25)
+project(glad)
 
-find_package(OpenGL REQUIRED)
+find_package(OpenGL)
 
-add_library(obsglad OBJECT)
-add_library(OBS::glad ALIAS obsglad)
-
-if(OBS_CMAKE_VERSION VERSION_LESS 3.0.0)
-  add_library(OBS::obsglad ALIAS obsglad)
+if(NOT WIN32 AND NOT APPLE)
+	find_package(X11)
 endif()
 
-# cmake-format: off
-target_sources(
-  obsglad
-  PRIVATE src/glad.c
-          $<$<PLATFORM_ID:Windows>:src/glad_wgl.c>
-          $<$<TARGET_EXISTS:OpenGL::EGL>:src/glad_egl.c>
-          $<$<TARGET_EXISTS:OpenGL::EGL>:include/EGL/eglplatform.h>
-  PUBLIC include/glad/glad.h
-         "$<$<PLATFORM_ID:Windows>:${CMAKE_CURRENT_SOURCE_DIR}/include/glad/glad_wgl.h>"
-         "$<$<TARGET_EXISTS:OpenGL::EGL>:${CMAKE_CURRENT_SOURCE_DIR}/include/glad/glad_egl.h>")
-# cmake-format: on
+set(glad_SOURCES
+	src/glad.c
+	include/glad/glad.h)
 
-target_compile_options(obsglad PRIVATE $<$<COMPILE_LANG_AND_ID:C,AppleClang,Clang>:-Wno-strict-prototypes>)
+if(WIN32)
+	set(glad_PLATFORM_SOURCES
+		src/glad_wgl.c
+		include/glad/glad_wgl.h)
+elseif(NOT APPLE)
+	set(glad_PLATFORM_SOURCES
+		src/glad_glx.c
+		include/glad/glad_glx.h)
+endif()
 
-target_include_directories(obsglad PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+set(glad_include_dirs
+	PRIVATE ${OPENGL_INCLUDE_DIR})
 
-target_link_libraries(
-  obsglad
-  PRIVATE $<$<NOT:$<PLATFORM_ID:Windows,Darwin>>:${CMAKE_DL_LIBS}>
-  PUBLIC OpenGL::GL $<$<TARGET_EXISTS:OpenGL::EGL>:OpenGL::EGL>)
+if (UNIX AND NOT APPLE)
+list (APPEND glad_include_dirs
+	PRIVATE ${X11_X11_INCLUDE_PATH})
+endif()
 
-set_target_properties(obsglad PROPERTIES FOLDER deps POSITION_INDEPENDENT_CODE TRUE)
+add_library(glad SHARED
+	${glad_SOURCES}
+	${glad_PLATFORM_SOURCES})
+set_target_properties(glad PROPERTIES
+	OUTPUT_NAME obsglad
+	VERSION "0"
+	SOVERSION "0")
+target_include_directories(glad
+	PUBLIC include
+	${glad_include_dirs})
+target_compile_definitions(glad
+	PRIVATE GLAD_GLAPI_EXPORT_BUILD)
+
+if(NOT MSVC)
+	target_compile_options(glad
+		PRIVATE -DPIC -fvisibility=hidden)
+	if(NOT MINGW)
+		target_compile_options(glad PRIVATE -fPIC)
+	endif()
+endif()
+
+if(NOT WIN32 AND NOT APPLE)
+	set(glad_PLATFORM_DEPS
+		${X11_X11_LIB})
+	# only link to libdl on linux
+	if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+		set(glad_PLATFORM_DEPS
+			${glad_PLATFORM_DEPS}
+			-ldl)
+	endif()
+endif()
+
+target_link_libraries(glad
+	${glad_PLATFORM_DEPS}
+	${OPENGL_gl_LIBRARY})
+
+install_obs_core(glad)

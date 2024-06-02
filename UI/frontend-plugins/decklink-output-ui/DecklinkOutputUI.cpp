@@ -5,8 +5,7 @@
 #include "decklink-ui-main.h"
 
 DecklinkOutputUI::DecklinkOutputUI(QWidget *parent)
-	: QDialog(parent),
-	  ui(new Ui_Output)
+	: QDialog(parent), ui(new Ui_Output)
 {
 	ui->setupUi(this);
 
@@ -16,6 +15,14 @@ DecklinkOutputUI::DecklinkOutputUI(QWidget *parent)
 
 	propertiesView = nullptr;
 	previewPropertiesView = nullptr;
+
+	connect(ui->startOutput, SIGNAL(released()), this, SLOT(StartOutput()));
+	connect(ui->stopOutput, SIGNAL(released()), this, SLOT(StopOutput()));
+
+	connect(ui->startPreviewOutput, SIGNAL(released()), this,
+		SLOT(StartPreviewOutput()));
+	connect(ui->stopPreviewOutput, SIGNAL(released()), this,
+		SLOT(StopPreviewOutput()));
 }
 
 void DecklinkOutputUI::ShowHideDialog()
@@ -44,8 +51,8 @@ void DecklinkOutputUI::SetupPropertiesView()
 	ui->propertiesLayout->addWidget(propertiesView);
 	obs_data_release(settings);
 
-	connect(propertiesView, &OBSPropertiesView::Changed, this,
-		&DecklinkOutputUI::PropertiesChanged);
+	connect(propertiesView, SIGNAL(Changed()), this,
+		SLOT(PropertiesChanged()));
 }
 
 void DecklinkOutputUI::SaveSettings()
@@ -81,18 +88,17 @@ void DecklinkOutputUI::SetupPreviewPropertiesView()
 	ui->previewPropertiesLayout->addWidget(previewPropertiesView);
 	obs_data_release(settings);
 
-	connect(previewPropertiesView, &OBSPropertiesView::Changed, this,
-		&DecklinkOutputUI::PreviewPropertiesChanged);
+	connect(previewPropertiesView, SIGNAL(Changed()), this,
+		SLOT(PreviewPropertiesChanged()));
 }
 
 void DecklinkOutputUI::SavePreviewSettings()
 {
-	BPtr<char> modulePath =
-		obs_module_get_config_path(obs_current_module(), "");
+	char *modulePath = obs_module_get_config_path(obs_current_module(), "");
 
 	os_mkdirs(modulePath);
 
-	BPtr<char> path = obs_module_get_config_path(
+	char *path = obs_module_get_config_path(
 		obs_current_module(), "decklinkPreviewOutputProps.json");
 
 	obs_data_t *settings = previewPropertiesView->GetSettings();
@@ -100,10 +106,15 @@ void DecklinkOutputUI::SavePreviewSettings()
 		obs_data_save_json_safe(settings, path, "tmp", "bak");
 }
 
-void DecklinkOutputUI::on_outputButton_clicked()
+void DecklinkOutputUI::StartOutput()
 {
 	SaveSettings();
-	output_toggle();
+	output_start();
+}
+
+void DecklinkOutputUI::StopOutput()
+{
+	output_stop();
 }
 
 void DecklinkOutputUI::PropertiesChanged()
@@ -111,39 +122,18 @@ void DecklinkOutputUI::PropertiesChanged()
 	SaveSettings();
 }
 
-void DecklinkOutputUI::OutputStateChanged(bool active)
-{
-	QString text;
-	if (active) {
-		text = QString(obs_module_text("Stop"));
-	} else {
-		text = QString(obs_module_text("Start"));
-	}
-
-	ui->outputButton->setChecked(active);
-	ui->outputButton->setText(text);
-}
-
-void DecklinkOutputUI::on_previewOutputButton_clicked()
+void DecklinkOutputUI::StartPreviewOutput()
 {
 	SavePreviewSettings();
-	preview_output_toggle();
+	preview_output_start();
+}
+
+void DecklinkOutputUI::StopPreviewOutput()
+{
+	preview_output_stop();
 }
 
 void DecklinkOutputUI::PreviewPropertiesChanged()
 {
 	SavePreviewSettings();
-}
-
-void DecklinkOutputUI::PreviewOutputStateChanged(bool active)
-{
-	QString text;
-	if (active) {
-		text = QString(obs_module_text("Stop"));
-	} else {
-		text = QString(obs_module_text("Start"));
-	}
-
-	ui->previewOutputButton->setChecked(active);
-	ui->previewOutputButton->setText(text);
 }

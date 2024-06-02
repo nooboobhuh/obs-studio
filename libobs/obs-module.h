@@ -1,5 +1,5 @@
 /******************************************************************************
-    Copyright (C) 2023 by Lain Bailey <lain@obsproject.com>
+    Copyright (C) 2014 by Hugh Bailey <obs.jim@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -73,22 +73,16 @@ bool obs_module_load(void)
  */
 
 /** Required: Declares a libobs module. */
-#define OBS_DECLARE_MODULE()                                             \
-	static obs_module_t *obs_module_pointer;                         \
-	MODULE_EXPORT void obs_module_set_pointer(obs_module_t *module); \
-	void obs_module_set_pointer(obs_module_t *module)                \
-	{                                                                \
-		obs_module_pointer = module;                             \
-	}                                                                \
-	obs_module_t *obs_current_module(void)                           \
-	{                                                                \
-		return obs_module_pointer;                               \
-	}                                                                \
-	MODULE_EXPORT uint32_t obs_module_ver(void);                     \
-	uint32_t obs_module_ver(void)                                    \
-	{                                                                \
-		return LIBOBS_API_VER;                                   \
-	}
+#define OBS_DECLARE_MODULE()                                                  \
+	static obs_module_t *obs_module_pointer;                              \
+	MODULE_EXPORT void obs_module_set_pointer(obs_module_t *module);      \
+	void obs_module_set_pointer(obs_module_t *module)                     \
+	{                                                                     \
+		obs_module_pointer = module;                                  \
+	}                                                                     \
+	obs_module_t *obs_current_module(void) { return obs_module_pointer; } \
+	MODULE_EXPORT uint32_t obs_module_ver(void);                          \
+	uint32_t obs_module_ver(void) { return LIBOBS_API_VER; }
 
 /**
  * Required: Called when the module is loaded.  Use this function to load all
@@ -143,7 +137,7 @@ MODULE_EXTERN const char *obs_module_text(const char *lookup_string);
 
 /** Helper function for looking up locale if default locale handler was used,
  * returns true if text found, otherwise false */
-MODULE_EXPORT bool obs_module_get_string(const char *lookup_string,
+MODULE_EXTERN bool obs_module_get_string(const char *lookup_string,
 					 const char **translated_string);
 
 /** Helper function that returns the current module */
@@ -172,10 +166,7 @@ MODULE_EXTERN obs_module_t *obs_current_module(void);
  */
 #define OBS_MODULE_AUTHOR(name)                            \
 	MODULE_EXPORT const char *obs_module_author(void); \
-	const char *obs_module_author(void)                \
-	{                                                  \
-		return name;                               \
-	}
+	const char *obs_module_author(void) { return name; }
 
 /** Optional: Returns the full name of the module */
 MODULE_EXPORT const char *obs_module_name(void);

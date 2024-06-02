@@ -78,7 +78,7 @@ it's no longer needed.
 
 *(Important note: do not use more than one display widget within the
 hierarchy of the same base window; this will cause presentation stalls
-on macOS.)*
+on Macs.)*
 
 For an example of how displays are used with Qt, see
 `UI/qt-display.hpp`_ and `UI/qt-display.cpp`_.
@@ -98,7 +98,7 @@ save/load individual sources manually by using
 :c:func:`obs_save_source()` and :c:func:`obs_load_source()`.
 
 *(Author's note: I should not have written those helper functions; the
-downside is I had to add "private" sources that aren't saveable via the*
+downside is I had to add "private" sources that aren't savable via the*
 :c:func:`obs_source_create_private()` *function.  Just one of the many
 minor design flaws that can occur during long-term development.)*
 
@@ -247,6 +247,6 @@ translated error message stored that can be obtained via the
 
 .. --------------------------------------------------------------------
 
-.. _RTMP Output: https://github.com/obsproject/obs-studio/blob/master/plugins/obs-outputs/rtmp-stream.c
-.. _UI/qt-display.hpp: https://github.com/obsproject/obs-studio/blob/master/UI/qt-display.hpp
-.. _UI/qt-display.cpp: https://github.com/obsproject/obs-studio/blob/master/UI/qt-display.cpp
+.. _RTMP Output: https://github.com/jp9000/obs-studio/blob/master/plugins/obs-outputs/rtmp-stream.c
+.. _UI/qt-display.hpp: https://github.com/jp9000/obs-studio/blob/master/UI/qt-display.hpp
+.. _UI/qt-display.cpp: https://github.com/jp9000/obs-studio/blob/master/UI/qt-display.cpp

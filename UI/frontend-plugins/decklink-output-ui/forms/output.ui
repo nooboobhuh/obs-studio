@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>785</width>
-    <height>484</height>
+    <height>497</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -42,7 +42,7 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <property name="spacing">
-      <number>6</number>
+      <number>-1</number>
      </property>
      <item>
       <spacer name="horizontalSpacer">
@@ -58,12 +58,16 @@
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="outputButton">
+      <widget class="QPushButton" name="startOutput">
        <property name="text">
         <string>Start</string>
        </property>
-       <property name="checkable">
-        <bool>true</bool>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="stopOutput">
+       <property name="text">
+        <string>Stop</string>
        </property>
       </widget>
      </item>
@@ -95,16 +99,27 @@
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="previewOutputButton">
+      <widget class="QPushButton" name="startPreviewOutput">
        <property name="text">
         <string>Start</string>
        </property>
-       <property name="checkable">
-        <bool>true</bool>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="stopPreviewOutput">
+       <property name="text">
+        <string>Stop</string>
        </property>
       </widget>
      </item>
     </layout>
+   </item>
+   <item>
+    <widget class="QLabel" name="keyerLabel">
+     <property name="text">
+      <string>Keyer output requires RGB mode in advanced settings.</string>
+     </property>
+    </widget>
    </item>
   </layout>
  </widget>

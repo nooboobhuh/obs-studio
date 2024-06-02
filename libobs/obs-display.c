@@ -1,5 +1,5 @@
 /******************************************************************************
-    Copyright (C) 2023 by Lain Bailey <lain@obsproject.com>
+    Copyright (C) 2013 by Hugh Bailey <obs.jim@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -25,17 +25,6 @@ bool obs_display_init(struct obs_display *display,
 	pthread_mutex_init_value(&display->draw_callbacks_mutex);
 	pthread_mutex_init_value(&display->draw_info_mutex);
 
-#if defined(_WIN32)
-	/* Conservative test for NVIDIA flickering in multi-GPU setups */
-	display->use_clear_workaround = gs_get_adapter_count() > 1 &&
-					!gs_can_adapter_fast_clear();
-#elif defined(__APPLE__)
-	/* Apple Silicon GL driver doesn't seem to track SRGB clears correctly */
-	display->use_clear_workaround = true;
-#else
-	display->use_clear_workaround = false;
-#endif
-
 	if (graphics_data) {
 		display->swap = gs_swapchain_create(graphics_data);
 		if (!display->swap) {
@@ -44,12 +33,8 @@ bool obs_display_init(struct obs_display *display,
 			return false;
 		}
 
-		const uint32_t cx = graphics_data->cx;
-		const uint32_t cy = graphics_data->cy;
-		display->cx = cx;
-		display->cy = cy;
-		display->next_cx = cx;
-		display->next_cy = cy;
+		display->cx = graphics_data->cx;
+		display->cy = graphics_data->cy;
 	}
 
 	if (pthread_mutex_init(&display->draw_callbacks_mutex, NULL) != 0) {
@@ -129,20 +114,9 @@ void obs_display_resize(obs_display_t *display, uint32_t cx, uint32_t cy)
 
 	pthread_mutex_lock(&display->draw_info_mutex);
 
-	display->next_cx = cx;
-	display->next_cy = cy;
-
-	pthread_mutex_unlock(&display->draw_info_mutex);
-}
-
-void obs_display_update_color_space(obs_display_t *display)
-{
-	if (!display)
-		return;
-
-	pthread_mutex_lock(&display->draw_info_mutex);
-
-	display->update_color_space = true;
+	display->cx = cx;
+	display->cy = cy;
+	display->size_changed = true;
 
 	pthread_mutex_unlock(&display->draw_info_mutex);
 }
@@ -177,59 +151,31 @@ void obs_display_remove_draw_callback(obs_display_t *display,
 	pthread_mutex_unlock(&display->draw_callbacks_mutex);
 }
 
-static inline bool render_display_begin(struct obs_display *display,
+static inline void render_display_begin(struct obs_display *display,
 					uint32_t cx, uint32_t cy,
-					bool update_color_space)
+					bool size_changed)
 {
 	struct vec4 clear_color;
 
 	gs_load_swapchain(display->swap);
 
-	if ((display->cx != cx) || (display->cy != cy)) {
+	if (size_changed)
 		gs_resize(cx, cy);
-		display->cx = cx;
-		display->cy = cy;
-	} else if (update_color_space) {
-		gs_update_color_space();
-	}
 
-	const bool success = gs_is_present_ready();
-	if (success) {
-		gs_begin_scene();
+	gs_begin_scene();
 
-		if (gs_get_color_space() == GS_CS_SRGB)
-			vec4_from_rgba(&clear_color, display->background_color);
-		else
-			vec4_from_rgba_srgb(&clear_color,
-					    display->background_color);
-		clear_color.w = 1.0f;
+	vec4_from_rgba(&clear_color, display->background_color);
+	clear_color.w = 1.0f;
 
-		const bool use_clear_workaround = display->use_clear_workaround;
+	gs_clear(GS_CLEAR_COLOR | GS_CLEAR_DEPTH | GS_CLEAR_STENCIL,
+		 &clear_color, 1.0f, 0);
 
-		uint32_t clear_flags = GS_CLEAR_DEPTH | GS_CLEAR_STENCIL;
-		if (!use_clear_workaround)
-			clear_flags |= GS_CLEAR_COLOR;
-		gs_clear(clear_flags, &clear_color, 1.0f, 0);
+	gs_enable_depth_test(false);
+	/* gs_enable_blending(false); */
+	gs_set_cull_mode(GS_NEITHER);
 
-		gs_enable_depth_test(false);
-		/* gs_enable_blending(false); */
-		gs_set_cull_mode(GS_NEITHER);
-
-		gs_ortho(0.0f, (float)cx, 0.0f, (float)cy, -100.0f, 100.0f);
-		gs_set_viewport(0, 0, cx, cy);
-
-		if (use_clear_workaround) {
-			gs_effect_t *const solid_effect =
-				obs->video.solid_effect;
-			gs_effect_set_vec4(gs_effect_get_param_by_name(
-						   solid_effect, "color"),
-					   &clear_color);
-			while (gs_effect_loop(solid_effect, "Solid"))
-				gs_draw_sprite(NULL, 0, cx, cy);
-		}
-	}
-
-	return success;
+	gs_ortho(0.0f, (float)cx, 0.0f, (float)cy, -100.0f, 100.0f);
+	gs_set_viewport(0, 0, cx, cy);
 }
 
 static inline void render_display_end()
@@ -240,45 +186,46 @@ static inline void render_display_end()
 void render_display(struct obs_display *display)
 {
 	uint32_t cx, cy;
-	bool update_color_space;
+	bool size_changed;
 
 	if (!display || !display->enabled)
 		return;
+
+	GS_DEBUG_MARKER_BEGIN(GS_DEBUG_COLOR_DISPLAY, "obs_display");
 
 	/* -------------------------------------------- */
 
 	pthread_mutex_lock(&display->draw_info_mutex);
 
-	cx = display->next_cx;
-	cy = display->next_cy;
-	update_color_space = display->update_color_space;
+	cx = display->cx;
+	cy = display->cy;
+	size_changed = display->size_changed;
 
-	display->update_color_space = false;
+	if (size_changed)
+		display->size_changed = false;
 
 	pthread_mutex_unlock(&display->draw_info_mutex);
 
 	/* -------------------------------------------- */
 
-	if (render_display_begin(display, cx, cy, update_color_space)) {
-		GS_DEBUG_MARKER_BEGIN(GS_DEBUG_COLOR_DISPLAY, "obs_display");
+	render_display_begin(display, cx, cy, size_changed);
 
-		pthread_mutex_lock(&display->draw_callbacks_mutex);
+	pthread_mutex_lock(&display->draw_callbacks_mutex);
 
-		for (size_t i = 0; i < display->draw_callbacks.num; i++) {
-			struct draw_callback *callback;
-			callback = display->draw_callbacks.array + i;
+	for (size_t i = 0; i < display->draw_callbacks.num; i++) {
+		struct draw_callback *callback;
+		callback = display->draw_callbacks.array + i;
 
-			callback->draw(callback->param, cx, cy);
-		}
-
-		pthread_mutex_unlock(&display->draw_callbacks_mutex);
-
-		render_display_end();
-
-		GS_DEBUG_MARKER_END();
-
-		gs_present();
+		callback->draw(callback->param, cx, cy);
 	}
+
+	pthread_mutex_unlock(&display->draw_callbacks_mutex);
+
+	render_display_end();
+
+	GS_DEBUG_MARKER_END();
+
+	gs_present();
 }
 
 void obs_display_set_enabled(obs_display_t *display, bool enable)

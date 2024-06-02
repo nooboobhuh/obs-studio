@@ -1,5 +1,5 @@
 /******************************************************************************
-    Copyright (C) 2023 by Lain Bailey <lain@obsproject.com>
+    Copyright (C) 2013 by Hugh Bailey <obs.jim@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,8 +16,8 @@
 ******************************************************************************/
 
 #include "format-conversion.h"
-
-#include "../util/sse-intrin.h"
+#include <xmmintrin.h>
+#include <emmintrin.h>
 
 /* ...surprisingly, if I don't use a macro to force inlining, it causes the
  * CPU usage to boost by a tremendous amount in debug builds. */

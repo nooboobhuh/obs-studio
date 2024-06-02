@@ -41,8 +41,8 @@ public:
 
 	bool Activate(DeckLinkDevice *device, long long modeId,
 		      BMDVideoConnection bmdVideoConnection,
-		      BMDAudioConnection bmdAudioConnection) override;
-	void Deactivate() override;
+		      BMDAudioConnection bmdAudioConnection);
+	void Deactivate();
 	bool Capturing();
 
 	bool buffering = false;
@@ -50,7 +50,6 @@ public:
 	std::string hash;
 	long long id;
 	bool swap = false;
-	bool allow10Bit = false;
 	BMDVideoConnection videoConnection;
 	BMDAudioConnection audioConnection;
 };

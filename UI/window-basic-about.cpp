@@ -11,9 +11,9 @@ using namespace json11;
 
 OBSAbout::OBSAbout(QWidget *parent) : QDialog(parent), ui(new Ui::OBSAbout)
 {
-	setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
-
 	ui->setupUi(this);
+
+	setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
 	QString bitness;
 	QString ver;
@@ -24,7 +24,7 @@ OBSAbout::OBSAbout(QWidget *parent) : QDialog(parent), ui(new Ui::OBSAbout)
 		bitness = " (64 bit)";
 
 #ifdef HAVE_OBSCONFIG_H
-	ver += obs_get_version_string();
+	ver += OBS_VERSION;
 #else
 	ver += LIBOBS_API_MAJOR_VER + "." + LIBOBS_API_MINOR_VER + "." +
 	       LIBOBS_API_PATCH_VER;
@@ -33,16 +33,11 @@ OBSAbout::OBSAbout(QWidget *parent) : QDialog(parent), ui(new Ui::OBSAbout)
 	ui->version->setText(ver + bitness);
 
 	ui->contribute->setText(QTStr("About.Contribute"));
-
-	if (steam) {
-		delete ui->donate;
-	} else {
-		ui->donate->setText(
-			"&nbsp;&nbsp;<a href='https://obsproject.com/contribute'>" +
-			QTStr("About.Donate") + "</a>");
-		ui->donate->setTextInteractionFlags(Qt::TextBrowserInteraction);
-		ui->donate->setOpenExternalLinks(true);
-	}
+	ui->donate->setText(
+		"&nbsp;&nbsp;<a href='https://obsproject.com/donate'>" +
+		QTStr("About.Donate") + "</a>");
+	ui->donate->setTextInteractionFlags(Qt::TextBrowserInteraction);
+	ui->donate->setOpenExternalLinks(true);
 
 	ui->getInvolved->setText(
 		"&nbsp;&nbsp;<a href='https://github.com/obsproject/obs-studio/blob/master/CONTRIBUTING.rst'>" +
@@ -61,12 +56,9 @@ OBSAbout::OBSAbout(QWidget *parent) : QDialog(parent), ui(new Ui::OBSAbout)
 	ui->license->setProperty("themeID", "aboutHLayout");
 	ui->info->setProperty("themeID", "aboutInfo");
 
-	connect(ui->about, &ClickableLabel::clicked, this,
-		&OBSAbout::ShowAbout);
-	connect(ui->authors, &ClickableLabel::clicked, this,
-		&OBSAbout::ShowAuthors);
-	connect(ui->license, &ClickableLabel::clicked, this,
-		&OBSAbout::ShowLicense);
+	connect(ui->about, SIGNAL(clicked()), this, SLOT(ShowAbout()));
+	connect(ui->authors, SIGNAL(clicked()), this, SLOT(ShowAuthors()));
+	connect(ui->license, SIGNAL(clicked()), this, SLOT(ShowLicense()));
 
 	QPointer<OBSAbout> about(this);
 
@@ -77,8 +69,10 @@ OBSAbout::OBSAbout(QWidget *parent) : QDialog(parent), ui(new Ui::OBSAbout)
 			"application/json");
 		QObject::connect(thread, &RemoteTextThread::Result, main,
 				 &OBSBasic::UpdatePatronJson);
-		QObject::connect(thread, &RemoteTextThread::Result, this,
-				 &OBSAbout::ShowAbout);
+		QObject::connect(
+			thread,
+			SIGNAL(Result(const QString &, const QString &)), this,
+			SLOT(ShowAbout()));
 		main->patronJsonThread.reset(thread);
 		thread->start();
 	} else {
@@ -108,7 +102,7 @@ void OBSAbout::ShowAbout()
 		std::string link = patron["link"].string_value();
 		int amount = patron["amount"].int_value();
 
-		if (top && amount < 5000) {
+		if (top && amount < 10000) {
 			text += "</p>";
 			top = false;
 		} else if (!first) {
@@ -134,15 +128,10 @@ void OBSAbout::ShowAbout()
 void OBSAbout::ShowAuthors()
 {
 	std::string path;
-	QString error =
-		QTStr("About.Error")
-			.arg("https://github.com/obsproject/obs-studio/blob/master/AUTHORS");
+	QString error = "Error! File could not be read.\n\n \
+		Go to: https://github.com/obsproject/obs-studio/blob/master/AUTHORS";
 
-#ifdef __APPLE__
-	if (!GetDataFilePath("AUTHORS", path)) {
-#else
 	if (!GetDataFilePath("authors/AUTHORS", path)) {
-#endif
 		ui->textBrowser->setPlainText(error);
 		return;
 	}
@@ -162,9 +151,8 @@ void OBSAbout::ShowAuthors()
 void OBSAbout::ShowLicense()
 {
 	std::string path;
-	QString error =
-		QTStr("About.Error")
-			.arg("https://github.com/obsproject/obs-studio/blob/master/COPYING");
+	QString error = "Error! File could not be read.\n\n \
+		Go to: https://github.com/obsproject/obs-studio/blob/master/COPYING";
 
 	if (!GetDataFilePath("license/gplv2.txt", path)) {
 		ui->textBrowser->setPlainText(error);

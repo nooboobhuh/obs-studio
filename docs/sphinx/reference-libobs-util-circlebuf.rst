@@ -4,9 +4,6 @@ Circular Buffers
 A circular buffer that will automatically increase in size as necessary
 as data is pushed to the front or back.
 
-.. deprecated:: 30.1
-   Replaced by :doc:`reference-libobs-util-deque`
-
 .. code:: cpp
 
    #include <util/circlebuf.h>
@@ -15,7 +12,7 @@ as data is pushed to the front or back.
 Circular Buffer Structure (struct circlebuf)
 --------------------------------------------
 
-.. struct:: circlebuf
+.. type:: struct circlebuf
 .. member:: void   *circlebuf.data
 .. member:: size_t circlebuf.size
 .. member:: size_t circlebuf.start_pos

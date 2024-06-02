@@ -13,34 +13,24 @@ using namespace std;
 OutputTimer *ot;
 
 OutputTimer::OutputTimer(QWidget *parent)
-	: QDialog(parent),
-	  ui(new Ui_OutputTimer)
+	: QDialog(parent), ui(new Ui_OutputTimer)
 {
 	ui->setupUi(this);
 
 	setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
-	QObject::connect(ui->outputTimerStream, &QPushButton::clicked, this,
-			 &OutputTimer::StreamingTimerButton);
-	QObject::connect(ui->outputTimerRecord, &QPushButton::clicked, this,
-			 &OutputTimer::RecordingTimerButton);
+	QObject::connect(ui->outputTimerStream, SIGNAL(clicked()), this,
+			 SLOT(StreamingTimerButton()));
+	QObject::connect(ui->outputTimerRecord, SIGNAL(clicked()), this,
+			 SLOT(RecordingTimerButton()));
 	QObject::connect(ui->buttonBox->button(QDialogButtonBox::Close),
-			 &QPushButton::clicked, this, &OutputTimer::hide);
+			 SIGNAL(clicked()), this, SLOT(hide()));
 
 	streamingTimer = new QTimer(this);
 	streamingTimerDisplay = new QTimer(this);
 
 	recordingTimer = new QTimer(this);
 	recordingTimerDisplay = new QTimer(this);
-
-	QObject::connect(streamingTimer, &QTimer::timeout, this,
-			 &OutputTimer::EventStopStreaming);
-	QObject::connect(streamingTimerDisplay, &QTimer::timeout, this,
-			 &OutputTimer::UpdateStreamTimerDisplay);
-	QObject::connect(recordingTimer, &QTimer::timeout, this,
-			 &OutputTimer::EventStopRecording);
-	QObject::connect(recordingTimerDisplay, &QTimer::timeout, this,
-			 &OutputTimer::UpdateRecordTimerDisplay);
 }
 
 void OutputTimer::closeEvent(QCloseEvent *)
@@ -95,6 +85,12 @@ void OutputTimer::StreamTimerStart()
 	streamingTimer->setInterval(total);
 	streamingTimer->setSingleShot(true);
 
+	QObject::connect(streamingTimer, SIGNAL(timeout()),
+			 SLOT(EventStopStreaming()));
+
+	QObject::connect(streamingTimerDisplay, SIGNAL(timeout()), this,
+			 SLOT(UpdateStreamTimerDisplay()));
+
 	streamingTimer->start();
 	streamingTimerDisplay->start(1000);
 	ui->outputTimerStream->setText(obs_module_text("Stop"));
@@ -122,6 +118,12 @@ void OutputTimer::RecordTimerStart()
 
 	recordingTimer->setInterval(total);
 	recordingTimer->setSingleShot(true);
+
+	QObject::connect(recordingTimer, SIGNAL(timeout()),
+			 SLOT(EventStopRecording()));
+
+	QObject::connect(recordingTimerDisplay, SIGNAL(timeout()), this,
+			 SLOT(UpdateRecordTimerDisplay()));
 
 	recordingTimer->start();
 	recordingTimerDisplay->start(1000);
@@ -178,8 +180,8 @@ void OutputTimer::UpdateStreamTimerDisplay()
 	int minutes = (remainingTime % 3600) / 60;
 	int hours = remainingTime / 3600;
 
-	QString text =
-		QString::asprintf("%02d:%02d:%02d", hours, minutes, seconds);
+	QString text;
+	text.sprintf("%02d:%02d:%02d", hours, minutes, seconds);
 	ui->streamTime->setText(text);
 }
 
@@ -197,8 +199,8 @@ void OutputTimer::UpdateRecordTimerDisplay()
 	int minutes = (remainingTime % 3600) / 60;
 	int hours = remainingTime / 3600;
 
-	QString text =
-		QString::asprintf("%02d:%02d:%02d", hours, minutes, seconds);
+	QString text;
+	text.sprintf("%02d:%02d:%02d", hours, minutes, seconds);
 	ui->recordTime->setText(text);
 }
 
@@ -218,7 +220,7 @@ void OutputTimer::UnpauseRecordingTimer()
 	if (!ui->pauseRecordTimer->isChecked())
 		return;
 
-	if (recordingTimeLeft > 0 && !recordingTimer->isActive())
+	if (!recordingTimer->isActive())
 		recordingTimer->start(recordingTimeLeft);
 }
 
@@ -226,10 +228,10 @@ void OutputTimer::ShowHideDialog()
 {
 	if (!isVisible()) {
 		setVisible(true);
-		QTimer::singleShot(250, this, &OutputTimer::show);
+		QTimer::singleShot(250, this, SLOT(show()));
 	} else {
 		setVisible(false);
-		QTimer::singleShot(250, this, &OutputTimer::hide);
+		QTimer::singleShot(250, this, SLOT(hide()));
 	}
 }
 
@@ -248,7 +250,7 @@ void OutputTimer::EventStopRecording()
 static void SaveOutputTimer(obs_data_t *save_data, bool saving, void *)
 {
 	if (saving) {
-		OBSDataAutoRelease obj = obs_data_create();
+		obs_data_t *obj = obs_data_create();
 
 		obs_data_set_int(obj, "streamTimerHours",
 				 ot->ui->streamingTimerHours->value());
@@ -273,9 +275,10 @@ static void SaveOutputTimer(obs_data_t *save_data, bool saving, void *)
 				  ot->ui->pauseRecordTimer->isChecked());
 
 		obs_data_set_obj(save_data, "output-timer", obj);
+
+		obs_data_release(obj);
 	} else {
-		OBSDataAutoRelease obj =
-			obs_data_get_obj(save_data, "output-timer");
+		obs_data_t *obj = obs_data_get_obj(save_data, "output-timer");
 
 		if (!obj)
 			obj = obs_data_create();
@@ -301,6 +304,8 @@ static void SaveOutputTimer(obs_data_t *save_data, bool saving, void *)
 
 		ot->ui->pauseRecordTimer->setChecked(
 			obs_data_get_bool(obj, "pauseRecordTimer"));
+
+		obs_data_release(obj);
 	}
 }
 
@@ -337,9 +342,7 @@ extern "C" void InitOutputTimer()
 
 	ot = new OutputTimer(window);
 
-	auto cb = []() {
-		ot->ShowHideDialog();
-	};
+	auto cb = []() { ot->ShowHideDialog(); };
 
 	obs_frontend_pop_ui_translation();
 

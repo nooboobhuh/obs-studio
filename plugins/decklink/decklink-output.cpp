@@ -8,8 +8,7 @@
 #include "decklink-device-discovery.hpp"
 #include "decklink-devices.hpp"
 
-#include <media-io/video-scaler.h>
-#include <util/util_uint64.h>
+#include "../../libobs/media-io/video-scaler.h"
 
 static void decklink_output_destroy(void *data)
 {
@@ -23,27 +22,7 @@ static void *decklink_output_create(obs_data_t *settings, obs_output_t *output)
 
 	decklinkOutput->deviceHash = obs_data_get_string(settings, DEVICE_HASH);
 	decklinkOutput->modeID = obs_data_get_int(settings, MODE_ID);
-	decklinkOutput->keyerMode = (int)obs_data_get_int(settings, KEYER);
-	decklinkOutput->force_sdr = obs_data_get_bool(settings, FORCE_SDR);
-
-	ComPtr<DeckLinkDevice> device;
-	device.Set(deviceEnum->FindByHash(decklinkOutput->deviceHash));
-	if (device) {
-		DeckLinkDeviceMode *mode =
-			device->FindOutputMode(decklinkOutput->modeID);
-
-		struct video_scale_info to = {};
-		to.format = VIDEO_FORMAT_BGRA;
-		to.width = mode->GetWidth();
-		to.height = mode->GetHeight();
-		to.range = VIDEO_RANGE_FULL;
-		to.colorspace = (device->GetSupportsHDRMetadata() &&
-				 !decklinkOutput->force_sdr)
-					? VIDEO_CS_2100_PQ
-					: VIDEO_CS_709;
-
-		obs_output_set_video_conversion(output, &to);
-	}
+	decklinkOutput->keyerMode = obs_data_get_int(settings, KEYER);
 
 	return decklinkOutput;
 }
@@ -54,8 +33,7 @@ static void decklink_output_update(void *data, obs_data_t *settings)
 
 	decklink->deviceHash = obs_data_get_string(settings, DEVICE_HASH);
 	decklink->modeID = obs_data_get_int(settings, MODE_ID);
-	decklink->keyerMode = (int)obs_data_get_int(settings, KEYER);
-	decklink->force_sdr = obs_data_get_bool(settings, FORCE_SDR);
+	decklink->keyerMode = obs_data_get_int(settings, KEYER);
 }
 
 static bool decklink_output_start(void *data)
@@ -68,9 +46,6 @@ static bool decklink_output_start(void *data)
 		return false;
 	}
 
-	if (!decklink->deviceHash || !*decklink->deviceHash)
-		return false;
-
 	decklink->audio_samplerate = aoi.samples_per_sec;
 	decklink->audio_planes = 2;
 	decklink->audio_size =
@@ -82,29 +57,24 @@ static bool decklink_output_start(void *data)
 
 	device.Set(deviceEnum->FindByHash(decklink->deviceHash));
 
-	if (!device)
-		return false;
-
 	DeckLinkDeviceMode *mode = device->FindOutputMode(decklink->modeID);
-
-	struct obs_video_info ovi;
-	if (!obs_get_video_info(&ovi)) {
-		LOG(LOG_ERROR,
-		    "Start failed: could not retrieve obs_video_info!");
-		return false;
-	}
-
-	if (!mode->IsEqualFrameRate(ovi.fps_num, ovi.fps_den)) {
-		LOG(LOG_ERROR, "Start failed: FPS mismatch!");
-		return false;
-	}
 
 	decklink->SetSize(mode->GetWidth(), mode->GetHeight());
 
-	device->SetKeyerMode(decklink->keyerMode);
+	struct video_scale_info to = {};
 
-	if (!decklink->Activate(device, decklink->modeID))
-		return false;
+	if (decklink->keyerMode != 0) {
+		to.format = VIDEO_FORMAT_BGRA;
+	} else {
+		to.format = VIDEO_FORMAT_UYVY;
+	}
+	to.width = mode->GetWidth();
+	to.height = mode->GetHeight();
+
+	obs_output_set_video_conversion(decklink->GetOutput(), &to);
+
+	device->SetKeyerMode(decklink->keyerMode);
+	decklink->Activate(device, decklink->modeID);
 
 	struct audio_convert_info conversion = {};
 	conversion.format = AUDIO_FORMAT_16BIT;
@@ -125,6 +95,10 @@ static void decklink_output_stop(void *data, uint64_t)
 
 	obs_output_end_data_capture(decklink->GetOutput());
 
+	ComPtr<DeckLinkDevice> device;
+
+	device.Set(deviceEnum->FindByHash(decklink->deviceHash));
+
 	decklink->Deactivate();
 }
 
@@ -135,7 +109,7 @@ static void decklink_output_raw_video(void *data, struct video_data *frame)
 	if (!decklink->start_timestamp)
 		decklink->start_timestamp = frame->timestamp;
 
-	decklink->UpdateVideoFrame(frame);
+	decklink->DisplayVideoFrame(frame);
 }
 
 static bool prepare_audio(DeckLinkOutput *decklink,
@@ -145,8 +119,8 @@ static bool prepare_audio(DeckLinkOutput *decklink,
 	*output = *frame;
 
 	if (frame->timestamp < decklink->start_timestamp) {
-		uint64_t duration = util_mul_div64(frame->frames, 1000000000ULL,
-						   decklink->audio_samplerate);
+		uint64_t duration = (uint64_t)frame->frames * 1000000000 /
+				    (uint64_t)decklink->audio_samplerate;
 		uint64_t end_ts = frame->timestamp + duration;
 		uint64_t cutoff;
 
@@ -156,8 +130,7 @@ static bool prepare_audio(DeckLinkOutput *decklink,
 		cutoff = decklink->start_timestamp - frame->timestamp;
 		output->timestamp += cutoff;
 
-		cutoff = util_mul_div64(cutoff, decklink->audio_samplerate,
-					1000000000ULL);
+		cutoff *= (uint64_t)decklink->audio_samplerate / 1000000000;
 
 		for (size_t i = 0; i < decklink->audio_planes; i++)
 			output->data[i] +=
@@ -187,70 +160,58 @@ static bool decklink_output_device_changed(obs_properties_t *props,
 					   obs_property_t *list,
 					   obs_data_t *settings)
 {
+	const char *name = obs_data_get_string(settings, DEVICE_NAME);
 	const char *hash = obs_data_get_string(settings, DEVICE_HASH);
-	if (*hash) {
-		const char *name = obs_data_get_string(settings, DEVICE_NAME);
-		const char *mode = obs_data_get_string(settings, MODE_NAME);
-		long long modeId = obs_data_get_int(settings, MODE_ID);
+	const char *mode = obs_data_get_string(settings, MODE_NAME);
+	long long modeId = obs_data_get_int(settings, MODE_ID);
 
-		size_t itemCount = obs_property_list_item_count(list);
-		bool itemFound = false;
+	size_t itemCount = obs_property_list_item_count(list);
+	bool itemFound = false;
 
-		for (size_t i = 0; i < itemCount; i++) {
-			const char *curHash =
-				obs_property_list_item_string(list, i);
-			if (strcmp(hash, curHash) == 0) {
-				itemFound = true;
-				break;
-			}
+	for (size_t i = 0; i < itemCount; i++) {
+		const char *curHash = obs_property_list_item_string(list, i);
+		if (strcmp(hash, curHash) == 0) {
+			itemFound = true;
+			break;
+		}
+	}
+
+	if (!itemFound) {
+		obs_property_list_insert_string(list, 0, name, hash);
+		obs_property_list_item_disable(list, 0, true);
+	}
+
+	obs_property_t *modeList = obs_properties_get(props, MODE_ID);
+	obs_property_t *keyerList = obs_properties_get(props, KEYER);
+
+	obs_property_list_clear(modeList);
+	obs_property_list_clear(keyerList);
+
+	ComPtr<DeckLinkDevice> device;
+	device.Set(deviceEnum->FindByHash(hash));
+
+	if (!device) {
+		obs_property_list_add_int(modeList, mode, modeId);
+		obs_property_list_item_disable(modeList, 0, true);
+		obs_property_list_item_disable(keyerList, 0, true);
+	} else {
+		const std::vector<DeckLinkDeviceMode *> &modes =
+			device->GetOutputModes();
+
+		for (DeckLinkDeviceMode *mode : modes) {
+			obs_property_list_add_int(modeList,
+						  mode->GetName().c_str(),
+						  mode->GetId());
 		}
 
-		if (!itemFound) {
-			obs_property_list_insert_string(list, 0, name, hash);
-			obs_property_list_item_disable(list, 0, true);
+		obs_property_list_add_int(keyerList, "Disabled", 0);
+
+		if (device->GetSupportsExternalKeyer()) {
+			obs_property_list_add_int(keyerList, "External", 1);
 		}
 
-		obs_property_t *modeList = obs_properties_get(props, MODE_ID);
-		obs_property_t *keyerList = obs_properties_get(props, KEYER);
-
-		obs_property_list_clear(modeList);
-		obs_property_list_clear(keyerList);
-
-		ComPtr<DeckLinkDevice> device;
-		device.Set(deviceEnum->FindByHash(hash));
-
-		if (!device) {
-			obs_property_list_add_int(modeList, mode, modeId);
-			obs_property_list_item_disable(modeList, 0, true);
-			obs_property_list_item_disable(keyerList, 0, true);
-		} else {
-			const std::vector<DeckLinkDeviceMode *> &modes =
-				device->GetOutputModes();
-
-			struct obs_video_info ovi;
-			if (obs_get_video_info(&ovi)) {
-				for (DeckLinkDeviceMode *mode : modes) {
-					if (mode->IsEqualFrameRate(
-						    ovi.fps_num, ovi.fps_den)) {
-						obs_property_list_add_int(
-							modeList,
-							mode->GetName().c_str(),
-							mode->GetId());
-					}
-				}
-			}
-
-			obs_property_list_add_int(keyerList, "Disabled", 0);
-
-			if (device->GetSupportsExternalKeyer()) {
-				obs_property_list_add_int(keyerList, "External",
-							  1);
-			}
-
-			if (device->GetSupportsInternalKeyer()) {
-				obs_property_list_add_int(keyerList, "Internal",
-							  2);
-			}
+		if (device->GetSupportsInternalKeyer()) {
+			obs_property_list_add_int(keyerList, "Internal", 2);
 		}
 	}
 
@@ -275,7 +236,6 @@ static obs_properties_t *decklink_output_properties(void *unused)
 				OBS_COMBO_FORMAT_INT);
 
 	obs_properties_add_bool(props, AUTO_START, TEXT_AUTO_START);
-	obs_properties_add_bool(props, FORCE_SDR, TEXT_FORCE_SDR);
 
 	obs_properties_add_list(props, KEYER, TEXT_ENABLE_KEYER,
 				OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_INT);

@@ -51,7 +51,7 @@ size_t utf8_char_length(const utf8_char_t* c)
 int utf8_char_whitespace(const utf8_char_t* c)
 {
     // 0x7F is DEL
-    if (!c || (unsigned char)c[0] <= ' ' || c[0] == 0x7F) {
+    if (!c || (c[0] >= 0 && c[0] <= ' ') || c[0] == 0x7F) {
         return 1;
     }
 
@@ -220,10 +220,7 @@ utf8_char_t* utf8_load_text_file(const char* path, size_t* size)
         }
     }
 
-    if (data) {
-        data[*size] = 0;
-    }
-    
+    data[*size] = 0;
     return data;
 }
 

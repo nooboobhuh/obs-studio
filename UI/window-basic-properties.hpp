@@ -1,5 +1,5 @@
 /******************************************************************************
-    Copyright (C) 2023 by Lain Bailey <lain@obsproject.com>
+    Copyright (C) 2014 by Hugh Bailey <obs.jim@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -27,15 +27,13 @@
 class OBSPropertiesView;
 class OBSBasic;
 
-#include "ui_OBSBasicProperties.h"
-
 class OBSBasicProperties : public QDialog {
 	Q_OBJECT
 
 private:
-	OBSBasic *main;
+	QPointer<OBSQTDisplay> preview;
 
-	std::unique_ptr<Ui::OBSBasicProperties> ui;
+	OBSBasic *main;
 	bool acceptClicked;
 
 	OBSSource source;
@@ -47,9 +45,9 @@ private:
 	QDialogButtonBox *buttonBox;
 	QSplitter *windowSplitter;
 
-	OBSSourceAutoRelease sourceA;
-	OBSSourceAutoRelease sourceB;
-	OBSSourceAutoRelease sourceClone;
+	OBSSource sourceA;
+	OBSSource sourceB;
+	OBSSource sourceClone;
 	bool direction = true;
 
 	static void SourceRemoved(void *data, calldata_t *params);
@@ -74,7 +72,5 @@ public:
 
 protected:
 	virtual void closeEvent(QCloseEvent *event) override;
-	virtual bool nativeEvent(const QByteArray &eventType, void *message,
-				 qintptr *result) override;
 	virtual void reject() override;
 };

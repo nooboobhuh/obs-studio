@@ -1,5 +1,5 @@
 /******************************************************************************
-    Copyright (C) 2023 by Lain Bailey <lain@obsproject.com>
+    Copyright (C) 2013 by Hugh Bailey <obs.jim@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 
 #include "media-io-defs.h"
 #include "../util/c99defs.h"
-#include "../util/util_uint64.h"
+#include "../util/util_uint128.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,7 +27,6 @@ extern "C" {
 
 #define MAX_AUDIO_MIXES 6
 #define MAX_AUDIO_CHANNELS 8
-#define MAX_DEVICE_INPUT_CHANNELS 64
 #define AUDIO_OUTPUT_FRAMES 1024
 
 #define TOTAL_AUDIO_SIZE                                              \
@@ -106,7 +105,6 @@ struct audio_convert_info {
 	uint32_t samples_per_sec;
 	enum audio_format format;
 	enum speaker_layout speakers;
-	bool allow_clipping;
 };
 
 static inline uint32_t get_audio_channels(enum speaker_layout speakers)
@@ -195,22 +193,20 @@ static inline size_t get_audio_size(enum audio_format format,
 	       get_audio_bytes_per_channel(format) * frames;
 }
 
-static inline size_t get_total_audio_size(enum audio_format format,
-					  enum speaker_layout speakers,
-					  uint32_t frames)
-{
-	return get_audio_channels(speakers) *
-	       get_audio_bytes_per_channel(format) * frames;
-}
-
 static inline uint64_t audio_frames_to_ns(size_t sample_rate, uint64_t frames)
 {
-	return util_mul_div64(frames, 1000000000ULL, sample_rate);
+	util_uint128_t val;
+	val = util_mul64_64(frames, 1000000000ULL);
+	val = util_div128_32(val, (uint32_t)sample_rate);
+	return val.low;
 }
 
 static inline uint64_t ns_to_audio_frames(size_t sample_rate, uint64_t frames)
 {
-	return util_mul_div64(frames, sample_rate, 1000000000ULL);
+	util_uint128_t val;
+	val = util_mul64_64(frames, sample_rate);
+	val = util_div128_32(val, 1000000000);
+	return val.low;
 }
 
 #define AUDIO_OUTPUT_SUCCESS 0

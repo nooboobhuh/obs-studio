@@ -5,7 +5,7 @@
 
    #include <graphics/vec3.h>
 
-.. struct:: vec3
+.. type:: struct vec3
 
    Two component vector structure.
 
@@ -121,7 +121,7 @@
    :param dst: Destination
    :param v:   Vector being subtracted from
    :param f:   Floating point being subtracted
-
+   
 ---------------------
 
 .. function:: void vec3_mulf(struct vec3 *dst, const struct vec3 *v, float f)
@@ -273,7 +273,7 @@
 
    Normalizes a vector
 
-   :param dst: Destination
+   :param dst: Desination
    :param v:   Vector to normalize
 
 ---------------------

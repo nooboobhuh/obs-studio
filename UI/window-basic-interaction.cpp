@@ -1,5 +1,5 @@
 /******************************************************************************
-    Copyright (C) 2023 by Lain Bailey <lain@obsproject.com>
+    Copyright (C) 2014 by Hugh Bailey <obs.jim@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -26,11 +26,6 @@
 #include <QScreen>
 #include <QWindow>
 
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN 1
-#include <Windows.h>
-#endif
-
 using namespace std;
 
 OBSBasicInteraction::OBSBasicInteraction(QWidget *parent, OBSSource source_)
@@ -49,10 +44,6 @@ OBSBasicInteraction::OBSBasicInteraction(QWidget *parent, OBSSource source_)
 	int cy = (int)config_get_int(App()->GlobalConfig(), "InteractionWindow",
 				     "cy");
 
-	Qt::WindowFlags flags = windowFlags();
-	Qt::WindowFlags helpFlag = Qt::WindowContextHelpButtonHint;
-	setWindowFlags(flags & (~helpFlag));
-
 	ui->setupUi(this);
 
 	ui->preview->setMouseTracking(true);
@@ -62,8 +53,15 @@ OBSBasicInteraction::OBSBasicInteraction(QWidget *parent, OBSSource source_)
 	if (cx > 400 && cy > 400)
 		resize(cx, cy);
 
+	OBSData settings = obs_source_get_settings(source);
+	obs_data_release(settings);
+
 	const char *name = obs_source_get_name(source);
 	setWindowTitle(QTStr("Basic.InteractionWindow").arg(QT_UTF8(name)));
+
+	Qt::WindowFlags flags = windowFlags();
+	Qt::WindowFlags helpFlag = Qt::WindowContextHelpButtonHint;
+	setWindowFlags(flags & (~helpFlag));
 
 	auto addDrawCallback = [this]() {
 		obs_display_add_draw_callback(ui->preview->GetDisplay(),
@@ -83,7 +81,9 @@ OBSBasicInteraction::~OBSBasicInteraction()
 
 OBSEventFilter *OBSBasicInteraction::BuildEventFilter()
 {
-	return new OBSEventFilter([this](QObject *, QEvent *event) {
+	return new OBSEventFilter([this](QObject *obj, QEvent *event) {
+		UNUSED_PARAMETER(obj);
+
 		switch (event->type()) {
 		case QEvent::MouseButtonPress:
 		case QEvent::MouseButtonRelease:
@@ -113,10 +113,12 @@ OBSEventFilter *OBSBasicInteraction::BuildEventFilter()
 	});
 }
 
-void OBSBasicInteraction::SourceRemoved(void *data, calldata_t *)
+void OBSBasicInteraction::SourceRemoved(void *data, calldata_t *params)
 {
 	QMetaObject::invokeMethod(static_cast<OBSBasicInteraction *>(data),
 				  "close");
+
+	UNUSED_PARAMETER(params);
 }
 
 void OBSBasicInteraction::SourceRenamed(void *data, calldata_t *params)
@@ -149,13 +151,10 @@ void OBSBasicInteraction::DrawPreview(void *data, uint32_t cx, uint32_t cy)
 
 	gs_viewport_push();
 	gs_projection_push();
-	const bool previous = gs_set_linear_srgb(true);
-
 	gs_ortho(0.0f, float(sourceCX), 0.0f, float(sourceCY), -100.0f, 100.0f);
 	gs_set_viewport(x, y, newCX, newCY);
 	obs_source_video_render(window->source);
 
-	gs_set_linear_srgb(previous);
 	gs_projection_pop();
 	gs_viewport_pop();
 }
@@ -174,31 +173,6 @@ void OBSBasicInteraction::closeEvent(QCloseEvent *event)
 	obs_display_remove_draw_callback(ui->preview->GetDisplay(),
 					 OBSBasicInteraction::DrawPreview,
 					 this);
-}
-
-bool OBSBasicInteraction::nativeEvent(const QByteArray &, void *message,
-				      qintptr *)
-{
-#ifdef _WIN32
-	const MSG &msg = *static_cast<MSG *>(message);
-	switch (msg.message) {
-	case WM_MOVE:
-		for (OBSQTDisplay *const display :
-		     findChildren<OBSQTDisplay *>()) {
-			display->OnMove();
-		}
-		break;
-	case WM_DISPLAYCHANGE:
-		for (OBSQTDisplay *const display :
-		     findChildren<OBSQTDisplay *>()) {
-			display->OnDisplayChange();
-		}
-	}
-#else
-	UNUSED_PARAMETER(message);
-#endif
-
-	return false;
 }
 
 static int TranslateQtKeyboardEventModifiers(QInputEvent *event,
@@ -247,10 +221,6 @@ static int TranslateQtMouseEventModifiers(QMouseEvent *event)
 bool OBSBasicInteraction::GetSourceRelativeXY(int mouseX, int mouseY, int &relX,
 					      int &relY)
 {
-	float pixelRatio = devicePixelRatioF();
-	int mouseXscaled = (int)roundf(mouseX * pixelRatio);
-	int mouseYscaled = (int)roundf(mouseY * pixelRatio);
-
 	QSize size = GetPixelSize(ui->preview);
 
 	uint32_t sourceCX = max(obs_source_get_width(source), 1u);
@@ -263,11 +233,11 @@ bool OBSBasicInteraction::GetSourceRelativeXY(int mouseX, int mouseY, int &relX,
 			     y, scale);
 
 	if (x > 0) {
-		relX = int(float(mouseXscaled - x) / scale);
-		relY = int(float(mouseYscaled / scale));
+		relX = int(float(mouseX - x) / scale);
+		relY = int(float(mouseY / scale));
 	} else {
-		relX = int(float(mouseXscaled / scale));
-		relY = int(float(mouseYscaled - y) / scale);
+		relX = int(float(mouseX / scale));
+		relY = int(float(mouseY - y) / scale);
 	}
 
 	// Confirm mouse is inside the source
@@ -311,9 +281,8 @@ bool OBSBasicInteraction::HandleMouseClickEvent(QMouseEvent *event)
 	//if (event->flags().testFlag(Qt::MouseEventCreatedDoubleClick))
 	//	clickCount = 2;
 
-	QPoint pos = event->pos();
-	bool insideSource = GetSourceRelativeXY(pos.x(), pos.y(), mouseEvent.x,
-						mouseEvent.y);
+	bool insideSource = GetSourceRelativeXY(event->x(), event->y(),
+						mouseEvent.x, mouseEvent.y);
 
 	if (mouseUp || insideSource)
 		obs_source_send_mouse_click(source, &mouseEvent, button,
@@ -330,8 +299,7 @@ bool OBSBasicInteraction::HandleMouseMoveEvent(QMouseEvent *event)
 
 	if (!mouseLeave) {
 		mouseEvent.modifiers = TranslateQtMouseEventModifiers(event);
-		QPoint pos = event->pos();
-		mouseLeave = !GetSourceRelativeXY(pos.x(), pos.y(),
+		mouseLeave = !GetSourceRelativeXY(event->x(), event->y(),
 						  mouseEvent.x, mouseEvent.y);
 	}
 
@@ -349,27 +317,22 @@ bool OBSBasicInteraction::HandleMouseWheelEvent(QWheelEvent *event)
 	int xDelta = 0;
 	int yDelta = 0;
 
-	const QPoint angleDelta = event->angleDelta();
 	if (!event->pixelDelta().isNull()) {
-		if (angleDelta.x())
+		if (event->orientation() == Qt::Horizontal)
 			xDelta = event->pixelDelta().x();
 		else
 			yDelta = event->pixelDelta().y();
 	} else {
-		if (angleDelta.x())
-			xDelta = angleDelta.x();
+		if (event->orientation() == Qt::Horizontal)
+			xDelta = event->delta();
 		else
-			yDelta = angleDelta.y();
+			yDelta = event->delta();
 	}
 
-	const QPointF position = event->position();
-	const int x = position.x();
-	const int y = position.y();
-
-	if (GetSourceRelativeXY(x, y, mouseEvent.x, mouseEvent.y)) {
+	if (GetSourceRelativeXY(event->x(), event->y(), mouseEvent.x,
+				mouseEvent.y))
 		obs_source_send_mouse_wheel(source, &mouseEvent, xDelta,
 					    yDelta);
-	}
 
 	return true;
 }

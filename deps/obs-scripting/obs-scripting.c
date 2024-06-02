@@ -1,5 +1,5 @@
 /******************************************************************************
-    Copyright (C) 2023 by Lain Bailey <lain@obsproject.com>
+    Copyright (C) 2017 by Hugh Bailey <jim@obsproject.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -19,12 +19,13 @@
 #include <util/dstr.h>
 #include <util/platform.h>
 #include <util/threading.h>
-#include <util/deque.h>
+#include <util/circlebuf.h>
 
 #include "obs-scripting-internal.h"
 #include "obs-scripting-callback.h"
+#include "obs-scripting-config.h"
 
-#if defined(LUAJIT_FOUND)
+#if COMPILE_LUA
 extern obs_script_t *obs_lua_script_create(const char *path,
 					   obs_data_t *settings);
 extern bool obs_lua_script_load(obs_script_t *s);
@@ -38,7 +39,7 @@ extern void obs_lua_script_update(obs_script_t *script, obs_data_t *settings);
 extern void obs_lua_script_save(obs_script_t *script);
 #endif
 
-#if defined(Python_FOUND)
+#if COMPILE_PYTHON
 extern obs_script_t *obs_python_script_create(const char *path,
 					      obs_data_t *settings);
 extern bool obs_python_script_load(obs_script_t *s);
@@ -60,10 +61,10 @@ static struct dstr file_filter = {0};
 static bool scripting_loaded = false;
 
 static const char *supported_formats[] = {
-#if defined(LUAJIT_FOUND)
+#if COMPILE_LUA
 	"lua",
 #endif
-#if defined(Python_FOUND)
+#if COMPILE_PYTHON
 	"py",
 #endif
 	NULL};
@@ -71,7 +72,7 @@ static const char *supported_formats[] = {
 /* -------------------------------------------- */
 
 static pthread_mutex_t defer_call_mutex;
-static struct deque defer_call_queue;
+static struct circlebuf defer_call_queue;
 static bool defer_call_exit = false;
 static os_sem_t *defer_call_semaphore;
 static pthread_t defer_call_thread;
@@ -84,7 +85,6 @@ struct defer_call {
 static void *defer_thread(void *unused)
 {
 	UNUSED_PARAMETER(unused);
-	os_set_thread_name("scripting: defer");
 
 	while (os_sem_wait(defer_call_semaphore) == 0) {
 		struct defer_call info;
@@ -95,7 +95,7 @@ static void *defer_thread(void *unused)
 			return NULL;
 		}
 
-		deque_pop_front(&defer_call_queue, &info, sizeof(info));
+		circlebuf_pop_front(&defer_call_queue, &info, sizeof(info));
 		pthread_mutex_unlock(&defer_call_mutex);
 
 		info.call(info.cb);
@@ -112,7 +112,7 @@ void defer_call_post(defer_call_cb call, void *cb)
 
 	pthread_mutex_lock(&defer_call_mutex);
 	if (!defer_call_exit)
-		deque_push_back(&defer_call_queue, &info, sizeof(info));
+		circlebuf_push_back(&defer_call_queue, &info, sizeof(info));
 	pthread_mutex_unlock(&defer_call_mutex);
 
 	os_sem_post(defer_call_semaphore);
@@ -122,7 +122,7 @@ void defer_call_post(defer_call_cb call, void *cb)
 
 bool obs_scripting_load(void)
 {
-	deque_init(&defer_call_queue);
+	circlebuf_init(&defer_call_queue);
 
 	if (pthread_mutex_init(&detach_mutex, NULL) != 0) {
 		return false;
@@ -144,15 +144,13 @@ bool obs_scripting_load(void)
 		return false;
 	}
 
-#if defined(LUAJIT_FOUND)
+#if COMPILE_LUA
 	obs_lua_load();
 #endif
 
-#if defined(Python_FOUND)
+#if COMPILE_PYTHON
 	obs_python_load();
-#if !defined(_WIN32) && \
-	!defined(       \
-		__APPLE__) /* Win32 and macOS need user-provided Python library paths */
+#ifndef _WIN32 /* don't risk python startup load issues on windows */
 	obs_scripting_load_python(NULL);
 #endif
 #endif
@@ -168,11 +166,11 @@ void obs_scripting_unload(void)
 
 		/* ---------------------- */
 
-#if defined(LUAJIT_FOUND)
+#if COMPILE_LUA
 	obs_lua_unload();
 #endif
 
-#if defined(Python_FOUND)
+#if COMPILE_PYTHON
 	obs_python_unload();
 #endif
 
@@ -206,7 +204,7 @@ void obs_scripting_unload(void)
 	/* TODO */
 
 	defer_call_exit = true;
-	deque_free(&defer_call_queue);
+	circlebuf_free(&defer_call_queue);
 
 	pthread_mutex_unlock(&defer_call_mutex);
 
@@ -251,12 +249,12 @@ obs_script_t *obs_script_create(const char *path, obs_data_t *settings)
 	if (!ext)
 		return NULL;
 
-#if defined(LUAJIT_FOUND)
+#if COMPILE_LUA
 	if (strcmp(ext, ".lua") == 0) {
 		script = obs_lua_script_create(path, settings);
 	} else
 #endif
-#if defined(Python_FOUND)
+#if COMPILE_PYTHON
 		if (strcmp(ext, ".py") == 0) {
 		script = obs_python_script_create(path, settings);
 	} else
@@ -308,13 +306,13 @@ obs_properties_t *obs_script_get_properties(obs_script_t *script)
 
 	if (!ptr_valid(script))
 		return NULL;
-#if defined(LUAJIT_FOUND)
+#if COMPILE_LUA
 	if (script->type == OBS_SCRIPT_LANG_LUA) {
 		props = obs_lua_script_get_properties(script);
 		goto out;
 	}
 #endif
-#if defined(Python_FOUND)
+#if COMPILE_PYTHON
 	if (script->type == OBS_SCRIPT_LANG_PYTHON) {
 		props = obs_python_script_get_properties(script);
 		goto out;
@@ -334,13 +332,13 @@ obs_data_t *obs_script_save(obs_script_t *script)
 	if (!ptr_valid(script))
 		return NULL;
 
-#if defined(LUAJIT_FOUND)
+#if COMPILE_LUA
 	if (script->type == OBS_SCRIPT_LANG_LUA) {
 		obs_lua_script_save(script);
 		goto out;
 	}
 #endif
-#if defined(Python_FOUND)
+#if COMPILE_PYTHON
 	if (script->type == OBS_SCRIPT_LANG_PYTHON) {
 		obs_python_script_save(script);
 		goto out;
@@ -375,12 +373,12 @@ void obs_script_update(obs_script_t *script, obs_data_t *settings)
 {
 	if (!ptr_valid(script))
 		return;
-#if defined(LUAJIT_FOUND)
+#if COMPILE_LUA
 	if (script->type == OBS_SCRIPT_LANG_LUA) {
 		obs_lua_script_update(script, settings);
 	}
 #endif
-#if defined(Python_FOUND)
+#if COMPILE_PYTHON
 	if (script->type == OBS_SCRIPT_LANG_PYTHON) {
 		obs_python_script_update(script, settings);
 	}
@@ -394,7 +392,7 @@ bool obs_script_reload(obs_script_t *script)
 	if (!ptr_valid(script))
 		return false;
 
-#if defined(LUAJIT_FOUND)
+#if COMPILE_LUA
 	if (script->type == OBS_SCRIPT_LANG_LUA) {
 		obs_lua_script_unload(script);
 		clear_call_queue();
@@ -402,7 +400,7 @@ bool obs_script_reload(obs_script_t *script)
 		goto out;
 	}
 #endif
-#if defined(Python_FOUND)
+#if COMPILE_PYTHON
 	if (script->type == OBS_SCRIPT_LANG_PYTHON) {
 		obs_python_script_unload(script);
 		clear_call_queue();
@@ -425,14 +423,14 @@ void obs_script_destroy(obs_script_t *script)
 	if (!script)
 		return;
 
-#if defined(LUAJIT_FOUND)
+#if COMPILE_LUA
 	if (script->type == OBS_SCRIPT_LANG_LUA) {
 		obs_lua_script_unload(script);
 		obs_lua_script_destroy(script);
 		return;
 	}
 #endif
-#if defined(Python_FOUND)
+#if COMPILE_PYTHON
 	if (script->type == OBS_SCRIPT_LANG_PYTHON) {
 		obs_python_script_unload(script);
 		obs_python_script_destroy(script);
@@ -441,7 +439,7 @@ void obs_script_destroy(obs_script_t *script)
 #endif
 }
 
-#if !defined(Python_FOUND)
+#if !COMPILE_PYTHON
 bool obs_scripting_load_python(const char *python_path)
 {
 	UNUSED_PARAMETER(python_path);
@@ -456,11 +454,5 @@ bool obs_scripting_python_loaded(void)
 bool obs_scripting_python_runtime_linked(void)
 {
 	return (bool)true;
-}
-
-void obs_scripting_python_version(char *version, size_t version_length)
-{
-	UNUSED_PARAMETER(version_length);
-	version[0] = 0;
 }
 #endif

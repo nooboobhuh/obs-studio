@@ -16,8 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <math.h>
-
-#include "util/sse-intrin.h"
+#include <xmmintrin.h>
 
 #include "util/threading.h"
 #include "util/bmem.h"
@@ -314,7 +313,7 @@ static int get_nr_channels_from_audio_data(const struct audio_data *data)
 	} while (false)
 
 /* Calculate the true peak over a set of samples.
- * The algorithm implements 5x oversampling by using Whittaker-Shannon
+ * The algorithm implements 5x oversampling by using Whittaker–Shannon
  * interpolation over four samples.
  *
  * The four samples have location t=-1.5, -0.5, +0.5, +1.5
@@ -535,8 +534,7 @@ static void volmeter_source_data_received(void *vptr, obs_source_t *source,
 
 	// Adjust magnitude/peak based on the volume level set by the user.
 	// And convert to dB.
-	mul = muted && !obs_source_muted(source) ? 0.0f
-						 : db_to_mul(volmeter->cur_db);
+	mul = muted ? 0.0f : db_to_mul(volmeter->cur_db);
 	for (int channel_nr = 0; channel_nr < MAX_AUDIO_CHANNELS;
 	     channel_nr++) {
 		magnitude[channel_nr] =
@@ -551,6 +549,8 @@ static void volmeter_source_data_received(void *vptr, obs_source_t *source,
 	pthread_mutex_unlock(&volmeter->mutex);
 
 	signal_levels_updated(volmeter, magnitude, peak, input_peak);
+
+	UNUSED_PARAMETER(source);
 }
 
 obs_fader_t *obs_fader_create(enum obs_fader_type type)
@@ -782,6 +782,8 @@ obs_volmeter_t *obs_volmeter_create(enum obs_fader_type type)
 
 	volmeter->type = type;
 
+	obs_volmeter_set_update_interval(volmeter, 50);
+
 	return volmeter;
 fail:
 	obs_volmeter_destroy(volmeter);
@@ -895,7 +897,7 @@ int obs_volmeter_get_nr_channels(obs_volmeter_t *volmeter)
 		source_nr_audio_channels = get_audio_channels(
 			volmeter->source->sample_info.speakers);
 	} else {
-		source_nr_audio_channels = 0;
+		source_nr_audio_channels = 1;
 	}
 
 	struct obs_audio_info audio_info;
@@ -905,7 +907,7 @@ int obs_volmeter_get_nr_channels(obs_volmeter_t *volmeter)
 		obs_nr_audio_channels = 2;
 	}
 
-	return CLAMP(source_nr_audio_channels, 0, obs_nr_audio_channels);
+	return CLAMP(source_nr_audio_channels, 1, obs_nr_audio_channels);
 }
 
 void obs_volmeter_add_callback(obs_volmeter_t *volmeter,

@@ -1,12 +1,34 @@
-cmake_minimum_required(VERSION 3.24...3.25)
+# TODO: Add posix support
+if(NOT WIN32)
+	return()
+endif()
 
-add_library(ipc-util INTERFACE)
-add_library(OBS::ipc-util ALIAS ipc-util)
+project(ipc-util)
 
-target_sources(
-  ipc-util INTERFACE "$<$<PLATFORM_ID:Windows>:${CMAKE_CURRENT_SOURCE_DIR}/ipc-util/pipe-windows.c>" ipc-util/pipe.h
-                     "$<$<PLATFORM_ID:Windows>:${CMAKE_CURRENT_SOURCE_DIR}/ipc-util/pipe-windows.h>")
+set(ipc-util_HEADERS
+	ipc-util/pipe.h)
 
-target_include_directories(ipc-util INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}")
+if(WIN32)
+	set(ipc-util_HEADERS
+		${ipc-util_HEADERS}
+		ipc-util/pipe-windows.h)
+	set(ipc-util_SOURCES
+		ipc-util/pipe-windows.c)
+else()
+	set(ipc-util_HEADERS
+		${ipc-util_HEADERS}
+		ipc-util/pipe-posix.h)
+	set(ipc-util_SOURCES
+		ipc-util/pipe-posix.c)
+endif()
 
-set_target_properties(ipc-util PROPERTIES FOLDER deps)
+if(MSVC)
+	add_compile_options($<IF:$<CONFIG:Debug>,/MTd,/MT> /Zl)
+endif()
+
+add_library(ipc-util STATIC
+	${ipc-util_SOURCES}
+	${ipc-util_HEADERS})
+target_include_directories(ipc-util
+	PUBLIC .)
+target_link_libraries(ipc-util)

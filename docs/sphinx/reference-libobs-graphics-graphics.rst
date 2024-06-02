@@ -9,7 +9,7 @@ Core Graphics API
 Graphics Enumerations
 ---------------------
 
-.. enum:: gs_draw_mode
+.. type:: enum gs_draw_mode
 
    Draw mode.  Can be one of the following values:
 
@@ -19,7 +19,7 @@ Graphics Enumerations
    - GS_TRIS      - Draws individual triangles
    - GS_TRISTRIP  - Draws a triangle strip
 
-.. enum:: gs_color_format
+.. type:: enum gs_color_format
 
    Color format.  Can be one of the following values:
 
@@ -42,21 +42,8 @@ Graphics Enumerations
    - GS_DXT1        - Compressed DXT1
    - GS_DXT3        - Compressed DXT3
    - GS_DXT5        - Compressed DXT5
-   - GS_RGBA_UNORM  - RGBA, 8 bits per channel, no SRGB aliasing
-   - GS_BGRX_UNORM  - BGRX, 8 bits per channel, no SRGB aliasing
-   - GS_BGRA_UNORM  - BGRA, 8 bits per channel, no SRGB aliasing
-   - GS_RG16        - RG, 16 bits per channel
 
-.. enum:: gs_color_space
-
-   Color space.  Can be one of the following values:
-
-   - GS_CS_SRGB         - sRGB
-   - GS_CS_SRGB_16F     - High-precision SDR
-   - GS_CS_709_EXTENDED - Canvas, Mac EDR (HDR)
-   - GS_CS_709_SCRGB    - 1.0 = 80 nits, Windows/Linux HDR
-
-.. enum:: gs_zstencil_format
+.. type:: enum gs_zstencil_format
 
    Z-Stencil buffer format.  Can be one of the following values:
 
@@ -66,14 +53,14 @@ Graphics Enumerations
    - GS_Z32F       - 32 bit floating point Z buffer
    - GS_Z32F_S8X24 - 32 bit floating point Z buffer, 8 bit stencil
 
-.. enum:: gs_index_type
+.. type:: enum gs_index_type
 
    Index buffer type.  Can be one of the following values:
 
    - GS_UNSIGNED_SHORT - 16 bit index
    - GS_UNSIGNED_LONG  - 32 bit index
 
-.. enum:: gs_cull_mode
+.. type:: enum gs_cull_mode
 
    Cull mode.  Can be one of the following values:
 
@@ -81,7 +68,7 @@ Graphics Enumerations
    - GS_FRONT   - Cull front faces
    - GS_NEITHER - Cull neither
 
-.. enum:: gs_blend_type
+.. type:: enum gs_blend_type
 
    Blend type.  Can be one of the following values:
 
@@ -97,7 +84,7 @@ Graphics Enumerations
    - GS_BLEND_INVDSTALPHA
    - GS_BLEND_SRCALPHASAT
 
-.. enum:: gs_depth_test
+.. type:: enum gs_depth_test
 
    Depth test type.  Can be one of the following values:
 
@@ -110,7 +97,7 @@ Graphics Enumerations
    - GS_NOTEQUAL
    - GS_ALWAYS
 
-.. enum:: gs_stencil_side
+.. type:: enum gs_stencil_side
 
    Stencil side.  Can be one of the following values:
 
@@ -118,7 +105,7 @@ Graphics Enumerations
    - GS_STENCIL_BACK
    - GS_STENCIL_BOTH
 
-.. enum:: gs_stencil_op_type
+.. type:: enum gs_stencil_op_type
 
    Stencil operation type.  Can be one of the following values:
 
@@ -129,7 +116,7 @@ Graphics Enumerations
    - GS_DECR
    - GS_INVERT
 
-.. enum:: gs_cube_sides
+.. type:: enum gs_cube_sides
 
    Cubemap side.  Can be one of the following values:
 
@@ -140,7 +127,7 @@ Graphics Enumerations
    - GS_POSITIVE_Z
    - GS_NEGATIVE_Z
 
-.. enum:: gs_sample_filter
+.. type:: enum gs_sample_filter
 
    Sample filter type.  Can be one of the following values:
 
@@ -154,7 +141,7 @@ Graphics Enumerations
    - GS_FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR
    - GS_FILTER_MIN_MAG_LINEAR_MIP_POINT
 
-.. enum:: gs_address_mode
+.. type:: enum gs_address_mode
 
    Address mode.  Can be one of the following values:
 
@@ -164,7 +151,7 @@ Graphics Enumerations
    - GS_ADDRESS_BORDER
    - GS_ADDRESS_MIRRORONCE
 
-.. enum:: gs_texture_type
+.. type:: enum gs_texture_type
 
    Texture type.  Can be one of the following values:
 
@@ -176,7 +163,7 @@ Graphics Enumerations
 Graphics Structures
 -------------------
 
-.. struct:: gs_monitor_info
+.. type:: struct gs_monitor_info
 .. member:: int gs_monitor_info.rotation_degrees
 .. member:: long gs_monitor_info.x
 .. member:: long gs_monitor_info.y
@@ -185,13 +172,13 @@ Graphics Structures
 
 ---------------------
 
-.. struct:: gs_tvertarray
+.. type:: struct gs_tvertarray
 .. member:: size_t gs_tvertarray.width
 .. member:: void *gs_tvertarray.array
 
 ---------------------
 
-.. struct:: gs_vb_data
+.. type:: struct gs_vb_data
 .. member:: size_t gs_vb_data.num
 .. member:: struct vec3 *gs_vb_data.points
 .. member:: struct vec3 *gs_vb_data.normals
@@ -202,7 +189,7 @@ Graphics Structures
 
 ---------------------
 
-.. struct:: gs_sampler_info
+.. type:: struct gs_sampler_info
 .. member:: enum gs_sample_filter gs_sampler_info.filter
 .. member:: enum gs_address_mode gs_sampler_info.address_u
 .. member:: enum gs_address_mode gs_sampler_info.address_v
@@ -212,7 +199,7 @@ Graphics Structures
 
 ---------------------
 
-.. struct:: gs_display_mode
+.. type:: struct gs_display_mode
 .. member:: uint32_t gs_display_mode.width
 .. member:: uint32_t gs_display_mode.height
 .. member:: uint32_t gs_display_mode.bits
@@ -220,7 +207,7 @@ Graphics Structures
 
 ---------------------
 
-.. struct:: gs_rect
+.. type:: struct gs_rect
 .. member:: int gs_rect.x
 .. member:: int gs_rect.y
 .. member:: int gs_rect.cx
@@ -228,7 +215,7 @@ Graphics Structures
 
 ---------------------
 
-.. struct:: gs_window
+.. type:: struct gs_window
 
    A window structure.  This structure is used with a native widget.
 
@@ -238,7 +225,7 @@ Graphics Structures
 
 .. member:: id  gs_window.view
 
-   (macOS only) A view ID.
+   (Mac only) A view ID.
 
 .. member:: uint32_t gs_window.id
             void* gs_window.display
@@ -247,7 +234,7 @@ Graphics Structures
 
 ---------------------
 
-.. struct:: gs_init_data
+.. type:: struct gs_init_data
 
    Swap chain initialization data.
 
@@ -267,7 +254,7 @@ Initialization Functions
 
 .. function:: void gs_enum_adapters(bool (*callback)(void *param, const char *name, uint32_t id), void *param)
 
-   Enumerates adapters (this really only applies on Windows).
+   Enumerates adapters (this really only applies on windows).
 
    :param callback: Enumeration callback
    :param param:    Private data passed to the callback
@@ -551,13 +538,6 @@ Swap Chains
 
 ---------------------
 
-.. function:: void gs_update_color_space(void)
-
-   Updates the color space of the swap chain based on the HDR status of
-   the nearest monitor
-
----------------------
-
 .. function:: void gs_get_size(uint32_t *cx, uint32_t *cy)
 
    Gets the size of the currently active swap chain
@@ -629,12 +609,6 @@ Resource Loading
 Draw Functions
 --------------
 
-.. function:: enum gs_color_space gs_get_color_space(void)
-
-   :return: The currently active color space
-
----------------------
-
 .. function:: gs_texture_t  *gs_get_render_target(void)
 
    :return: The currently active render target
@@ -649,20 +623,10 @@ Draw Functions
 
 .. function:: void gs_set_render_target(gs_texture_t *tex, gs_zstencil_t *zstencil)
 
-   Sets the active render target with implicit GS_CS_SRGB color space
+   Sets the active render target
 
    :param tex:      Texture to set as the active render target
    :param zstencil: Z-stencil to use as the active render target
-
----------------------
-
-.. function:: void gs_set_render_target_with_color_space(gs_texture_t *tex, gs_zstencil_t *zstencil, enum gs_color_space space)
-
-   Sets the active render target along with color space
-
-   :param tex:      Texture to set as the active render target
-   :param zstencil: Z-stencil to use as the active render target
-   :param space:    Color space of the render target
 
 ---------------------
 
@@ -801,29 +765,21 @@ Draw Functions
 
 .. function:: void gs_blend_function(enum gs_blend_type src, enum gs_blend_type dest)
 
-   Sets the blend function's source and destination factors
+   Sets the blend function
 
-   :param src:  Blend type for the blending equation's source factors
-   :param dest: Blend type for the blending equation's destination factors
+   :param src:  Blend type for the source
+   :param dest: Blend type for the destination
 
 ---------------------
 
 .. function:: void gs_blend_function_separate(enum gs_blend_type src_c, enum gs_blend_type dest_c, enum gs_blend_type src_a, enum gs_blend_type dest_a)
 
-   Sets the blend function's source and destination factors for RGB and alpha separately
+   Sets the blend function for RGB and alpha separately
 
-   :param src_c:  Blend type for the blending equation's source RGB factor
-   :param dest_c: Blend type for the blending equation's destination RGB factor
-   :param src_a:  Blend type for the blending equation's source alpha factor
-   :param dest_a: Blend type for the blending equation's destination alpha factor
-
----------------------
-
-.. function:: void gs_blend_op(enum gs_blend_op_type op)
-
-   Sets the blend function's operation type
-
-   :param op: Operation type for the blending equation
+   :param src_c:  Blend type for the source RGB
+   :param dest_c: Blend type for the destination RGB
+   :param src_a:  Blend type for the source alpha
+   :param dest_a: Blend type for the destination alpha
 
 ---------------------
 
@@ -870,7 +826,7 @@ Draw Functions
 
    Gets the current viewport
 
-   :param rect: Pointer to receive viewport rectangle
+   :param rect: Pointer to recieve viewport rectangle
 
 ---------------------
 
@@ -922,7 +878,7 @@ Texture Functions
    :param data:         Pointer to array of texture data pointers
    :param flags:        Can be 0 or a bitwise-OR combination of one or
                         more of the following value:
-
+                        
                         - GS_BUILD_MIPMAPS - Automatically builds
                           mipmaps (Note: not fully tested)
                         - GS_DYNAMIC - Dynamic
@@ -1007,84 +963,9 @@ Texture Functions
 
 ---------------------
 
-.. function:: gs_texture_t *gs_texture_create_from_dmabuf(unsigned int width, unsigned int height, uint32_t drm_format, enum gs_color_format color_format, uint32_t n_planes, const int *fds, const uint32_t *strides, const uint32_t *offsets, const uint64_t *modifiers)
-
-   **only Linux, FreeBSD, DragonFly:** Creates a texture from DMA-BUF metadata.
-
-   Exchanging DMA-BUFs is a verbose process because of its multiplanar nature.
-   For example, YUV can have each plane as a color channel, or a monitor buffer
-   can have the cursor stored in a separate plane.
-
-   This function treats the OBS Studio format and the DRM format separately.
-   This allows creating textures from DMA-BUFs with unsupported formats (e.g.
-   YUV) and perform the color format conversion using shaders. However, be
-   careful to always try and match the formats correctly, otherwise textures
-   can fail to be created or rendered.
-
-   All modifiers passed in the modifiers array must be equal. Passing different
-   modifiers for each plane is unsupported.
-
-   :param width:        Width of the texture
-   :param height:       Height of the texture
-   :param drm_format:   DRM format of the DMA-BUF buffer
-   :param color_format: Color format compatible with OBS Studio
-   :param n_planes:     Number of planes of the DMA-BUF
-   :param fds:          Array of size *n_planes* with the file descriptor of each plane
-   :param strides:      Array of size *n_planes* with the stride of each plane
-   :param offsets:      Array of size *n_planes* with the offset of each plane
-   :param modifiers:    Array of size *n_planes* with the modifier of each plane
-   :return:             A texture object on success, or *NULL* on failure
-   :rtype:              gs_texture_t*
-
----------------------
-
-.. enum:: gs_dmabuf_flags
-
-   DMA-BUF capabilities:
-
-   - GS_DMABUF_FLAG_NONE
-   - GS_DMABUF_FLAG_SUPPORTS_IMPLICIT_MODIFIERS  - Renderer supports implicit modifiers
-
----------------------
-
-.. function:: bool *gs_query_dmabuf_capabilities(enum gs_dmabuf_flags *dmabuf_flags, uint32_t **drm_formats, size_t *n_formats)
-
-   **only Linux, FreeBSD, DragonFly:** Queries the capabilities for DMA-BUFs.
-
-   Graphics cards can optimize frame buffers by storing them in custom layouts,
-   depending on their hardware features. These layouts can make these frame
-   buffers unsuitable for linear processing. This function allows querying whether
-   the graphics card in use supports implicit modifiers, and the supported texture
-   formats.
-
-   The caller must free the `drm_formats` array with `bfree()` after use.
-
-   :param dmabuf_flags: Pointer to receive a capability bitmap
-   :param drm_formats:  Pointer to receive an array of DRM formats
-   :param n_formats:    Pointer to receive the number of formats
-   :rtype:              bool
-
----------------------
-
-.. function:: bool *gs_query_dmabuf_modifiers_for_format(uint32_t drm_format, uint64_t **modifiers, size_t *n_modifiers)
-
-   **only Linux, FreeBSD, DragonFly:** Queries the supported DMA-BUF modifiers for a given format.
-
-   This function queries all supported explicit modifiers for a format,
-   stores them as an array and returns the number of supported modifiers.
-
-   The caller must free the `modifiers` array with `bfree()` after use.
-
-   :param drm_format:   DRM format of the DMA-BUF buffer
-   :param modifiers:    Pointer to receive an array of modifiers
-   :param n_modifiers:  Pointer to receive the number of modifiers
-   :rtype:              bool
-
----------------------
-
 .. function:: gs_texture_t *gs_texture_create_from_iosurface(void *iosurf)
 
-   **macOS only:** Creates a texture from an IOSurface.
+   **Mac only:** Creates a texture from an IOSurface.
 
    :param iosurf: IOSurface object
 
@@ -1092,7 +973,7 @@ Texture Functions
 
 .. function:: bool     gs_texture_rebind_iosurface(gs_texture_t *texture, void *iosurf)
 
-   **macOS only:** Rebinds a texture to another IOSurface
+   **Mac only:** Rebinds a texture to another IOSurface
 
    :param texture: Texture object
    :param iosuf:   IOSurface object
@@ -1165,7 +1046,7 @@ Cube Texture Functions
    :param data:         Pointer to array of texture data pointers
    :param flags:        Can be 0 or a bitwise-OR combination of one or
                         more of the following value:
-
+                        
                         - GS_BUILD_MIPMAPS - Automatically builds
                           mipmaps (Note: not fully tested)
                         - GS_DYNAMIC - Dynamic
@@ -1507,14 +1388,6 @@ Display Duplicator (Windows Only)
 ---------------------
 
 
-Monitor Functions
----------------------------------
-
-.. function:: bool gs_is_monitor_hdr(void *monitor)
-
----------------------
-
-
 Render Helper Functions
 -----------------------
 
@@ -1574,16 +1447,16 @@ Render Helper Functions
 Graphics Types
 --------------
 
-.. type:: struct gs_duplicator       gs_duplicator_t
-.. type:: struct gs_texture          gs_texture_t
-.. type:: struct gs_stage_surface    gs_stagesurf_t
-.. type:: struct gs_zstencil_buffer  gs_zstencil_t
-.. type:: struct gs_vertex_buffer    gs_vertbuffer_t
-.. type:: struct gs_index_buffer     gs_indexbuffer_t
-.. type:: struct gs_sampler_state    gs_samplerstate_t
-.. type:: struct gs_swap_chain       gs_swapchain_t
-.. type:: struct gs_texture_render   gs_texrender_t
-.. type:: struct gs_shader           gs_shader_t
-.. type:: struct gs_shader_param     gs_sparam_t
-.. type:: struct gs_device           gs_device_t
-.. type:: struct graphics_subsystem  graphics_t
+.. type:: typedef struct gs_duplicator       gs_duplicator_t
+.. type:: typedef struct gs_texture          gs_texture_t
+.. type:: typedef struct gs_stage_surface    gs_stagesurf_t
+.. type:: typedef struct gs_zstencil_buffer  gs_zstencil_t
+.. type:: typedef struct gs_vertex_buffer    gs_vertbuffer_t
+.. type:: typedef struct gs_index_buffer     gs_indexbuffer_t
+.. type:: typedef struct gs_sampler_state    gs_samplerstate_t
+.. type:: typedef struct gs_swap_chain       gs_swapchain_t
+.. type:: typedef struct gs_texture_render   gs_texrender_t
+.. type:: typedef struct gs_shader           gs_shader_t
+.. type:: typedef struct gs_shader_param     gs_sparam_t
+.. type:: typedef struct gs_device           gs_device_t
+.. type:: typedef struct graphics_subsystem  graphics_t

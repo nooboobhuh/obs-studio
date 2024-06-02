@@ -18,5 +18,6 @@ signals:
 	void doubleValChanged(double val);
 
 public slots:
+	void intValChanged(int val);
 	void setDoubleVal(double val);
 };

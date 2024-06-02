@@ -27,7 +27,7 @@ Display *disp()
 	return xdisplay;
 }
 
-void CleanupSceneSwitcher()
+void cleanupDisplay()
 {
 	if (!xdisplay)
 		return;
@@ -46,14 +46,8 @@ static bool ewmhIsSupported()
 	unsigned long num = 0, bytes = 0;
 	unsigned char *data = NULL;
 	Window ewmh_window = 0;
-	Window root_window = 0;
 
-	root_window = DefaultRootWindow(display);
-	if (!root_window) {
-		return false;
-	}
-
-	int status = XGetWindowProperty(display, root_window,
+	int status = XGetWindowProperty(display, DefaultRootWindow(display),
 					netSupportingWmCheck, 0L, 1L, false,
 					XA_WINDOW, &actualType, &format, &num,
 					&bytes, &data);
@@ -103,9 +97,6 @@ static std::vector<Window> getTopLevelWindows()
 
 	for (int i = 0; i < ScreenCount(disp()); ++i) {
 		Window rootWin = RootWindow(disp(), i);
-		if (!rootWin) {
-			continue;
-		}
 
 		int status = XGetWindowProperty(disp(), rootWin, netClList, 0L,
 						~0L, false, AnyPropertyType,
@@ -128,9 +119,6 @@ static std::vector<Window> getTopLevelWindows()
 static std::string GetWindowTitle(size_t i)
 {
 	Window w = getTopLevelWindows().at(i);
-	if (!w) {
-		return "";
-	}
 	std::string windowTitle;
 	char *name;
 
@@ -176,30 +164,16 @@ void GetCurrentWindowTitle(string &title)
 	char *name;
 
 	Window rootWin = RootWindow(disp(), 0);
-	if (!rootWin) {
-		return;
-	}
 
 	XGetWindowProperty(disp(), rootWin, active, 0L, ~0L, false,
 			   AnyPropertyType, &actualType, &format, &num, &bytes,
 			   (uint8_t **)&data);
 
-	if (!data[0]) {
-		return;
-	}
 	int status = XFetchName(disp(), data[0], &name);
 
 	if (status >= Success && name != nullptr) {
 		std::string str(name);
 		title = str;
-	} else {
-		XTextProperty xtp_new_name;
-		if (XGetWMName(disp(), data[0], &xtp_new_name) != 0 &&
-		    xtp_new_name.value != nullptr) {
-			std::string str((const char *)xtp_new_name.value);
-			title = str;
-			XFree(xtp_new_name.value);
-		}
 	}
 
 	XFree(name);

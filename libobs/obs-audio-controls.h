@@ -249,7 +249,6 @@ obs_volmeter_set_peak_meter_type(obs_volmeter_t *volmeter,
  * to be emitted in shorter intervals than specified here under some
  * circumstances.
  */
-OBS_DEPRECATED
 EXPORT void obs_volmeter_set_update_interval(obs_volmeter_t *volmeter,
 					     const unsigned int ms);
 
@@ -258,7 +257,6 @@ EXPORT void obs_volmeter_set_update_interval(obs_volmeter_t *volmeter,
  * @param volmeter pointer to the volume meter object
  * @return update interval in ms
  */
-OBS_DEPRECATED
 EXPORT unsigned int obs_volmeter_get_update_interval(obs_volmeter_t *volmeter);
 
 /**

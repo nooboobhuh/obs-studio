@@ -1,5 +1,5 @@
 /******************************************************************************
-    Copyright (C) 2023 by Lain Bailey <lain@obsproject.com>
+    Copyright (C) 2013-2014 by Hugh Bailey <obs.jim@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -41,35 +41,6 @@ enum obs_balance_type {
 	OBS_BALANCE_TYPE_SINE_LAW,
 	OBS_BALANCE_TYPE_SQUARE_LAW,
 	OBS_BALANCE_TYPE_LINEAR,
-};
-
-enum obs_icon_type {
-	OBS_ICON_TYPE_UNKNOWN,
-	OBS_ICON_TYPE_IMAGE,
-	OBS_ICON_TYPE_COLOR,
-	OBS_ICON_TYPE_SLIDESHOW,
-	OBS_ICON_TYPE_AUDIO_INPUT,
-	OBS_ICON_TYPE_AUDIO_OUTPUT,
-	OBS_ICON_TYPE_DESKTOP_CAPTURE,
-	OBS_ICON_TYPE_WINDOW_CAPTURE,
-	OBS_ICON_TYPE_GAME_CAPTURE,
-	OBS_ICON_TYPE_CAMERA,
-	OBS_ICON_TYPE_TEXT,
-	OBS_ICON_TYPE_MEDIA,
-	OBS_ICON_TYPE_BROWSER,
-	OBS_ICON_TYPE_CUSTOM,
-	OBS_ICON_TYPE_PROCESS_AUDIO_OUTPUT,
-};
-
-enum obs_media_state {
-	OBS_MEDIA_STATE_NONE,
-	OBS_MEDIA_STATE_PLAYING,
-	OBS_MEDIA_STATE_OPENING,
-	OBS_MEDIA_STATE_BUFFERING,
-	OBS_MEDIA_STATE_PAUSED,
-	OBS_MEDIA_STATE_STOPPED,
-	OBS_MEDIA_STATE_ENDED,
-	OBS_MEDIA_STATE_ERROR,
 };
 
 /**
@@ -169,11 +140,6 @@ enum obs_media_state {
 #define OBS_SOURCE_CAP_DISABLED (1 << 10)
 
 /**
- * Source type is obsolete (has been updated with new defaults/properties/etc)
- */
-#define OBS_SOURCE_CAP_OBSOLETE OBS_SOURCE_CAP_DISABLED
-
-/**
  * Source should enable monitoring by default.  Monitoring should be set by the
  * frontend if this flag is set.
  */
@@ -181,27 +147,6 @@ enum obs_media_state {
 
 /** Used internally for audio submixing */
 #define OBS_SOURCE_SUBMIX (1 << 12)
-
-/**
- * Source type can be controlled by media controls
- */
-#define OBS_SOURCE_CONTROLLABLE_MEDIA (1 << 13)
-
-/**
- * Source type provides cea708 data
- */
-#define OBS_SOURCE_CEA_708 (1 << 14)
-
-/**
- * Source understands SRGB rendering
- */
-#define OBS_SOURCE_SRGB (1 << 15)
-
-/**
- * Source type prefers not to have its properties shown on creation
- * (prefers to rely on defaults first)
- */
-#define OBS_SOURCE_CAP_DONT_SHOW_PROPERTIES (1 << 16)
 
 /** @} */
 
@@ -505,7 +450,7 @@ struct obs_source_info {
 
 	/**
 	 * Gets the default settings for this source
-	 *
+	 * 
 	 * If get_defaults is also defined both will be called, and the first
 	 * call will be to get_defaults, then to get_defaults2.
 	 *
@@ -526,40 +471,6 @@ struct obs_source_info {
 	bool (*audio_mix)(void *data, uint64_t *ts_out,
 			  struct audio_output_data *audio_output,
 			  size_t channels, size_t sample_rate);
-
-	/** Icon type for the source */
-	enum obs_icon_type icon_type;
-
-	/** Media controls */
-	void (*media_play_pause)(void *data, bool pause);
-	void (*media_restart)(void *data);
-	void (*media_stop)(void *data);
-	void (*media_next)(void *data);
-	void (*media_previous)(void *data);
-	int64_t (*media_get_duration)(void *data);
-	int64_t (*media_get_time)(void *data);
-	void (*media_set_time)(void *data, int64_t miliseconds);
-	enum obs_media_state (*media_get_state)(void *data);
-
-	/* version-related stuff */
-	uint32_t version; /* increment if needed to specify a new version */
-	const char *unversioned_id; /* set internally, don't set manually */
-
-	/** Missing files **/
-	obs_missing_files_t *(*missing_files)(void *data);
-
-	/** Get color space **/
-	enum gs_color_space (*video_get_color_space)(
-		void *data, size_t count,
-		const enum gs_color_space *preferred_spaces);
-
-	/**
-	 * Called when the filter is added to a source
-	 *
-	 * @param  data    Filter data
-	 * @param  source  Source that the filter is being added to
-	 */
-	void (*filter_add)(void *data, obs_source_t *source);
 };
 
 EXPORT void obs_register_source_s(const struct obs_source_info *info,

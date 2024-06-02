@@ -1,5 +1,5 @@
 /******************************************************************************
-    Copyright (C) 2023 by Lain Bailey <lain@obsproject.com>
+    Copyright (C) 2013 by Hugh Bailey <obs.jim@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -19,8 +19,7 @@
 
 #include "math-defs.h"
 #include "vec4.h"
-
-#include "../util/sse-intrin.h"
+#include <xmmintrin.h>
 
 #ifdef __cplusplus
 extern "C" {

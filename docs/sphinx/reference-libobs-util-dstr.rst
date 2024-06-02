@@ -12,7 +12,7 @@ std::string).
 Dynamic String Structure (struct dstr)
 --------------------------------------
 
-.. struct:: dstr
+.. type:: struct dstr
 .. member:: char *dstr.array
 .. member:: size_t dstr.len
 .. member:: size_t dstr.capacity
@@ -87,31 +87,8 @@ General String Helper Functions
 
 .. function:: char **strlist_split(const char *str, char split_ch, bool include_empty)
 
-   Splits a string in to a list of multiple sub-strings, terminated by
-   ``NULL``. If ``split_ch`` does not exist in the string, the first
-   sub-string will be the same as ``str``. Free with :c:func:`strlist_free()`.
-
-   :param str: The string to be split
-   :param split_ch: The delimiter
-   :param include_empty: If *true*, empty strings caused by having the
-                         ``split_ch`` right next to another will be
-                         included in the list. If *false*, they won't
-                         be included.
-
-   Sample usage:
-
-   .. code:: cpp
-
-      char **words = strlist_split("OBS    Studio", ' ', false);
-      int count = 0;
-
-      for (char **word = words; *word; ++word) {
-              count++;
-              blog(LOG_DEBUG, "%s", *word);
-      }
-
-      strlist_free(words);
-      // count == 2
+   Splits a string in to a list of multiple sub-strings.  Free with
+   :c:func:`strlist_free()`.
 
 ----------------------
 
@@ -211,7 +188,7 @@ Dynamic String Functions
    Copies a specific number of characters from another dynamic string.
 
    :param dst:   Dynamic string
-   :param src:   Dynamic string to copy
+   :param src:   Dynamic tring to copy
    :param len:   Number of characters to copy
 
 ----------------------
@@ -257,7 +234,7 @@ Dynamic String Functions
 
 .. function:: void dstr_cat_dstr(struct dstr *dst, const struct dstr *str)
 
-   Concatenates a dynamic string with another dynamic string.
+   Concatenates a dyanmic string with another dynamic string.
 
    :param dst: Dynamic string to concatenate to
    :param str: Dynamic string to concatenate with
@@ -331,7 +308,7 @@ Dynamic String Functions
    Removes a specific number of characters starting from a specific
    index.
 
-   :param dst:   Dynamic string
+   :param dst:   Dyanmic string
    :param idx:   Index to start removing characters at
    :param count: Number of characters to remove
 

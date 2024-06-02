@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Lain Bailey <lain@obsproject.com>
+ * Copyright (c) 2014 Hugh Bailey <obs.jim@gmail.com>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -16,7 +16,6 @@
 
 #include "bmem.h"
 #include "threading.h"
-#include "util/platform.h"
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -193,24 +192,4 @@ void os_set_thread_name(const char *name)
 #endif
 	}
 #endif
-
-	const HMODULE hModule = LoadLibrary(L"KernelBase.dll");
-	if (hModule) {
-		typedef HRESULT(WINAPI * set_thread_description_t)(HANDLE,
-								   PCWSTR);
-
-		const set_thread_description_t std =
-			(set_thread_description_t)GetProcAddress(
-				hModule, "SetThreadDescription");
-		if (std) {
-			wchar_t *wname;
-			os_utf8_to_wcs_ptr(name, 0, &wname);
-
-			std(GetCurrentThread(), wname);
-
-			bfree(wname);
-		}
-
-		FreeLibrary(hModule);
-	}
 }

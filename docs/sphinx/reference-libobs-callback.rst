@@ -22,9 +22,7 @@ handlers or to procedure handlers.
 
 .. function:: void calldata_free(calldata_t *data)
 
-   Frees a calldata structure. Should only be used if :c:func:`calldata_init()`
-   was used. If the object is received as a callback parameter, this function
-   should not be used.
+   Frees a calldata structure.
 
    :param data: Calldata structure
 
@@ -112,9 +110,7 @@ handlers or to procedure handlers.
 
 .. function:: void *calldata_ptr(const calldata_t *data, const char *name)
 
-   Gets a pointer parameter. For example, :ref:`core_signal_handler_reference`
-   that have ``ptr source`` as a parameter requires this function to get the
-   pointer, which can be casted to :c:type:`obs_source_t`. Does not have to be freed.
+   Gets a pointer parameter.
 
    :param data: Calldata structure
    :param name: Parameter name
@@ -146,7 +142,7 @@ Signals are used for all event-based callbacks.
 
 ---------------------
 
-.. type:: void (*signal_callback_t)(void *data, calldata_t *cd)
+.. type:: typedef void (*signal_callback_t)(void *data, calldata_t *cd)
 
    Signal callback.
 
@@ -192,46 +188,33 @@ Signals are used for all event-based callbacks.
 
 .. function:: void signal_handler_connect(signal_handler_t *handler, const char *signal, signal_callback_t callback, void *data)
 
-   Connects a callback to a signal on a signal handler. Does nothing
-   if the combination of ``signal``, ``callback``, and ``data``
-   is already connected to the handler.
+   Connect a callback to a signal on a signal handler.
 
    :param handler:  Signal handler object
-   :param signal:   Name of signal to handle
    :param callback: Signal callback
-   :param data:     Private data passed to the callback
-
-   For scripting, use :py:func:`signal_handler_connect`.
+   :param data:     Private data passed the callback
 
 ---------------------
 
 .. function:: void signal_handler_connect_ref(signal_handler_t *handler, const char *signal, signal_callback_t callback, void *data)
 
-   Connects a callback to a signal on a signal handler, and increments
+   Connect a callback to a signal on a signal handler, and increments
    the handler's internal reference counter, preventing it from being
-   destroyed until the signal has been disconnected. Even if the combination of
-   ``signal``, ``callback``, and ``data`` is already connected to the handler,
-   the reference counter is still incremented.
+   destroyed until the signal has been disconnected.
 
    :param handler:  Signal handler object
-   :param signal:   Name of signal to handle
    :param callback: Signal callback
-   :param data:     Private data passed to the callback
+   :param data:     Private data passed the callback
 
 ---------------------
 
 .. function:: void signal_handler_disconnect(signal_handler_t *handler, const char *signal, signal_callback_t callback, void *data)
 
-   Disconnects a callback from a signal on a signal handler. Does nothing
-   if the combination of ``signal``, ``callback``, and ``data``
-   is not yet connected to the handler.
+   Disconnects a callback from a signal on a signal handler.
 
    :param handler:  Signal handler object
-   :param signal:   Name of signal that was handled
    :param callback: Signal callback
-   :param data:     Private data passed to the callback
-
-   For scripting, use :py:func:`signal_handler_disconnect`.
+   :param data:     Private data passed the callback
 
 ---------------------
 
@@ -260,7 +243,7 @@ direct access to declarations or callback pointers.
 
 ---------------------
 
-.. type:: void (*proc_handler_proc_t)(void *data, calldata_t *cd)
+.. type:: typedef void (*proc_handler_proc_t)(void *data, calldata_t *cd)
 
    Procedure handler callback.
 

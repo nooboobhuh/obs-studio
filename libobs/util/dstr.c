@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Lain Bailey <lain@obsproject.com>
+ * Copyright (c) 2013 Hugh Bailey <obs.jim@gmail.com>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -197,7 +197,7 @@ wchar_t *wstrstri(const wchar_t *str, const wchar_t *find)
 	return NULL;
 }
 
-static inline bool is_padding(int ch)
+static inline bool is_padding(char ch)
 {
 	return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r';
 }
@@ -218,7 +218,7 @@ char *strdepad(char *str)
 	while (is_padding(*temp))
 		++temp;
 
-	len = strlen(temp);
+	len = strlen(str);
 	if (temp != str)
 		memmove(str, temp, len + 1);
 
@@ -244,16 +244,16 @@ wchar_t *wcsdepad(wchar_t *str)
 	temp = str;
 
 	/* remove preceding spaces/tabs */
-	while (is_padding(*temp))
+	while (*temp == ' ' || *temp == '\t')
 		++temp;
 
-	len = wcslen(temp);
+	len = wcslen(str);
 	if (temp != str)
 		memmove(str, temp, (len + 1) * sizeof(wchar_t));
 
 	if (len) {
 		temp = str + (len - 1);
-		while (is_padding(*temp))
+		while (*temp == ' ' || *temp == '\t')
 			*(temp--) = 0;
 	}
 

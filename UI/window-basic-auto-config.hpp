@@ -33,12 +33,11 @@ class AutoConfig : public QWizard {
 		Invalid,
 		Streaming,
 		Recording,
-		VirtualCam,
 	};
 
 	enum class Service {
 		Twitch,
-		YouTube,
+		Smashcast,
 		Other,
 	};
 
@@ -47,7 +46,6 @@ class AutoConfig : public QWizard {
 		NVENC,
 		QSV,
 		AMD,
-		Apple,
 		Stream,
 	};
 
@@ -90,7 +88,6 @@ class AutoConfig : public QWizard {
 	bool nvencAvailable = false;
 	bool qsvAvailable = false;
 	bool vceAvailable = false;
-	bool appleAvailable = false;
 
 	int startingBitrate = 2500;
 	bool customServer = false;
@@ -131,7 +128,7 @@ class AutoConfigStartPage : public QWizardPage {
 
 	friend class AutoConfig;
 
-	std::unique_ptr<Ui_AutoConfigStartPage> ui;
+	Ui_AutoConfigStartPage *ui;
 
 public:
 	AutoConfigStartPage(QWidget *parent = nullptr);
@@ -142,7 +139,6 @@ public:
 public slots:
 	void on_prioritizeStreaming_clicked();
 	void on_prioritizeRecording_clicked();
-	void PrioritizeVCam();
 };
 
 class AutoConfigVideoPage : public QWizardPage {
@@ -150,7 +146,7 @@ class AutoConfigVideoPage : public QWizardPage {
 
 	friend class AutoConfig;
 
-	std::unique_ptr<Ui_AutoConfigVideoPage> ui;
+	Ui_AutoConfigVideoPage *ui;
 
 public:
 	AutoConfigVideoPage(QWidget *parent = nullptr);
@@ -172,12 +168,12 @@ class AutoConfigStreamPage : public QWizardPage {
 
 	std::shared_ptr<Auth> auth;
 
-	std::unique_ptr<Ui_AutoConfigStreamPage> ui;
+	Ui_AutoConfigStreamPage *ui;
 	QString lastService;
 	bool ready = false;
 
 	void LoadServices(bool showAll);
-	inline bool IsCustomService() const;
+	inline bool IsCustom() const;
 
 public:
 	AutoConfigStreamPage(QWidget *parent = nullptr);
@@ -197,11 +193,8 @@ public slots:
 	void on_useStreamKey_clicked();
 	void ServiceChanged();
 	void UpdateKeyLink();
-	void UpdateMoreInfoLink();
 	void UpdateServerList();
 	void UpdateCompleted();
-
-	void reset_service_ui_fields(std::string &service);
 };
 
 class AutoConfigTestPage : public QWizardPage {
@@ -211,7 +204,7 @@ class AutoConfigTestPage : public QWizardPage {
 
 	QPointer<QFormLayout> results;
 
-	std::unique_ptr<Ui_AutoConfigTestPage> ui;
+	Ui_AutoConfigTestPage *ui;
 	std::thread testThread;
 	std::condition_variable cv;
 	std::mutex m;
@@ -251,8 +244,7 @@ class AutoConfigTestPage : public QWizardPage {
 		inline ServerInfo() {}
 
 		inline ServerInfo(const char *name_, const char *address_)
-			: name(name_),
-			  address(address_)
+			: name(name_), address(address_)
 		{
 		}
 	};

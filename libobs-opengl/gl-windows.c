@@ -1,5 +1,5 @@
 /******************************************************************************
-    Copyright (C) 2023 by Lain Bailey <lain@obsproject.com>
+    Copyright (C) 2013 by Hugh Bailey <obs.jim@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -39,9 +39,8 @@ struct gl_platform {
 /* For now, only support basic 32bit formats for graphics output. */
 static inline int get_color_format_bits(enum gs_color_format format)
 {
-	switch (format) {
+	switch ((uint32_t)format) {
 	case GS_RGBA:
-	case GS_BGRA:
 		return 32;
 	default:
 		return 0;
@@ -50,7 +49,7 @@ static inline int get_color_format_bits(enum gs_color_format format)
 
 static inline int get_depth_format_bits(enum gs_zstencil_format zsformat)
 {
-	switch (zsformat) {
+	switch ((uint32_t)zsformat) {
 	case GS_Z16:
 		return 16;
 	case GS_Z24_S8:
@@ -62,7 +61,7 @@ static inline int get_depth_format_bits(enum gs_zstencil_format zsformat)
 
 static inline int get_stencil_format_bits(enum gs_zstencil_format zsformat)
 {
-	switch (zsformat) {
+	switch ((uint32_t)zsformat) {
 	case GS_Z24_S8:
 		return 8;
 	default:
@@ -74,7 +73,7 @@ static inline int get_stencil_format_bits(enum gs_zstencil_format zsformat)
 static inline void init_dummy_pixel_format(PIXELFORMATDESCRIPTOR *pfd)
 {
 	memset(pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
-	pfd->nSize = sizeof(PIXELFORMATDESCRIPTOR);
+	pfd->nSize = sizeof(pfd);
 	pfd->nVersion = 1;
 	pfd->iPixelType = PFD_TYPE_RGBA;
 	pfd->cColorBits = 32;
@@ -155,37 +154,35 @@ static inline HGLRC gl_init_basic_context(HDC hdc)
 	return hglrc;
 }
 
+static const int attribs[] = {
+#ifdef _DEBUG
+	WGL_CONTEXT_FLAGS_ARB,        WGL_CONTEXT_DEBUG_BIT_ARB,
+#endif
+	WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB, 0, 0};
+
 static inline HGLRC gl_init_context(HDC hdc)
 {
-	static const int attribs[] = {
 #ifdef _DEBUG
-		WGL_CONTEXT_FLAGS_ARB,
-		WGL_CONTEXT_DEBUG_BIT_ARB,
+	if (GLAD_WGL_ARB_create_context) {
+		HGLRC hglrc = wglCreateContextAttribsARB(hdc, 0, attribs);
+		if (!hglrc) {
+			blog(LOG_ERROR,
+			     "wglCreateContextAttribsARB failed, "
+			     "%lu",
+			     GetLastError());
+			return NULL;
+		}
+
+		if (!wgl_make_current(hdc, hglrc)) {
+			wglDeleteContext(hglrc);
+			return NULL;
+		}
+
+		return hglrc;
+	}
 #endif
-		WGL_CONTEXT_PROFILE_MASK_ARB,
-		WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
-		WGL_CONTEXT_MAJOR_VERSION_ARB,
-		3,
-		WGL_CONTEXT_MINOR_VERSION_ARB,
-		3,
-		0,
-		0};
 
-	HGLRC hglrc = wglCreateContextAttribsARB(hdc, 0, attribs);
-	if (!hglrc) {
-		blog(LOG_ERROR,
-		     "wglCreateContextAttribsARB failed, "
-		     "%lu",
-		     GetLastError());
-		return NULL;
-	}
-
-	if (!wgl_make_current(hdc, hglrc)) {
-		wglDeleteContext(hglrc);
-		return NULL;
-	}
-
-	return hglrc;
+	return gl_init_basic_context(hdc);
 }
 
 static bool gl_dummy_context_init(struct dummy_context *dummy)
@@ -415,12 +412,6 @@ void gl_update(gs_device_t *device)
 	UNUSED_PARAMETER(device);
 }
 
-void gl_clear_context(gs_device_t *device)
-{
-	UNUSED_PARAMETER(device);
-	wglMakeCurrent(NULL, NULL);
-}
-
 static void init_dummy_swap_info(struct gs_init_data *info)
 {
 	info->format = GS_RGBA;
@@ -547,8 +538,8 @@ void device_enter_context(gs_device_t *device)
 
 void device_leave_context(gs_device_t *device)
 {
-	UNUSED_PARAMETER(device);
 	wglMakeCurrent(NULL, NULL);
+	UNUSED_PARAMETER(device);
 }
 
 void *device_get_device_obj(gs_device_t *device)
@@ -571,12 +562,6 @@ void device_load_swapchain(gs_device_t *device, gs_swapchain_t *swap)
 		if (!wgl_make_current(hdc, device->plat->hrc))
 			blog(LOG_ERROR, "device_load_swapchain (GL) failed");
 	}
-}
-
-bool device_is_present_ready(gs_device_t *device)
-{
-	UNUSED_PARAMETER(device);
-	return true;
 }
 
 void device_present(gs_device_t *device)
@@ -602,11 +587,6 @@ extern void gl_getclientsize(const struct gs_swap_chain *swap, uint32_t *width,
 		*width = 0;
 		*height = 0;
 	}
-}
-
-EXPORT bool device_is_monitor_hdr(gs_device_t *device, void *monitor)
-{
-	return false;
 }
 
 EXPORT bool device_gdi_texture_available(void)

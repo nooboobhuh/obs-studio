@@ -1,5 +1,5 @@
 /******************************************************************************
-    Copyright (C) 2023 by Lain Bailey <lain@obsproject.com>
+    Copyright (C) 2013 by Hugh Bailey <obs.jim@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -22,28 +22,18 @@
 #include <util/threading.h>
 #include <QWidget>
 #include <QLayout>
-#include <QComboBox>
 #include <QMessageBox>
 #include <QDataStream>
 #include <QKeyEvent>
-#include <QFileDialog>
-#include <QStandardItemModel>
-#include <QLabel>
-#include <QPushButton>
-#include <QToolBar>
 
 #if !defined(_WIN32) && !defined(__APPLE__)
-#include <obs-nix-platform.h>
-#endif
-
-#ifdef ENABLE_WAYLAND
-#include <qpa/qplatformnativeinterface.h>
+#include <QX11Info>
 #endif
 
 static inline void OBSErrorBoxva(QWidget *parent, const char *msg, va_list args)
 {
 	char full_message[4096];
-	vsnprintf(full_message, sizeof(full_message), msg, args);
+	vsnprintf(full_message, 4095, msg, args);
 
 	QMessageBox::critical(parent, "Error", full_message);
 }
@@ -62,94 +52,69 @@ OBSMessageBox::question(QWidget *parent, const QString &title,
 			QMessageBox::StandardButtons buttons,
 			QMessageBox::StandardButton defaultButton)
 {
-	QMessageBox mb(QMessageBox::Question, title, text,
-		       QMessageBox::NoButton, parent);
+	QMessageBox mb(QMessageBox::Question, title, text, buttons, parent);
 	mb.setDefaultButton(defaultButton);
-
-	if (buttons & QMessageBox::Ok) {
-		QPushButton *button = mb.addButton(QMessageBox::Ok);
-		button->setText(QTStr("OK"));
-	}
-#define add_button(x)                                               \
-	if (buttons & QMessageBox::x) {                             \
-		QPushButton *button = mb.addButton(QMessageBox::x); \
-		button->setText(QTStr(#x));                         \
-	}
-	add_button(Open);
-	add_button(Save);
-	add_button(Cancel);
-	add_button(Close);
-	add_button(Discard);
-	add_button(Apply);
-	add_button(Reset);
-	add_button(Yes);
-	add_button(No);
-	add_button(Abort);
-	add_button(Retry);
-	add_button(Ignore);
-#undef add_button
+	if (buttons & QMessageBox::Ok)
+		mb.setButtonText(QMessageBox::Ok, QTStr("OK"));
+#define translate_button(x)           \
+	if (buttons & QMessageBox::x) \
+		mb.setButtonText(QMessageBox::x, QTStr(#x));
+	translate_button(Open);
+	translate_button(Save);
+	translate_button(Cancel);
+	translate_button(Close);
+	translate_button(Discard);
+	translate_button(Apply);
+	translate_button(Reset);
+	translate_button(Yes);
+	translate_button(No);
+	translate_button(No);
+	translate_button(Abort);
+	translate_button(Retry);
+	translate_button(Ignore);
+#undef translate_button
 	return (QMessageBox::StandardButton)mb.exec();
 }
 
 void OBSMessageBox::information(QWidget *parent, const QString &title,
 				const QString &text)
 {
-	QMessageBox mb(QMessageBox::Information, title, text,
-		       QMessageBox::NoButton, parent);
-	mb.addButton(QTStr("OK"), QMessageBox::AcceptRole);
+	QMessageBox mb(QMessageBox::Information, title, text, QMessageBox::Ok,
+		       parent);
+	mb.setButtonText(QMessageBox::Ok, QTStr("OK"));
 	mb.exec();
 }
 
 void OBSMessageBox::warning(QWidget *parent, const QString &title,
 			    const QString &text, bool enableRichText)
 {
-	QMessageBox mb(QMessageBox::Warning, title, text, QMessageBox::NoButton,
+	QMessageBox mb(QMessageBox::Warning, title, text, QMessageBox::Ok,
 		       parent);
 	if (enableRichText)
 		mb.setTextFormat(Qt::RichText);
-	mb.addButton(QTStr("OK"), QMessageBox::AcceptRole);
+	mb.setButtonText(QMessageBox::Ok, QTStr("OK"));
 	mb.exec();
 }
 
 void OBSMessageBox::critical(QWidget *parent, const QString &title,
 			     const QString &text)
 {
-	QMessageBox mb(QMessageBox::Critical, title, text,
-		       QMessageBox::NoButton, parent);
-	mb.addButton(QTStr("OK"), QMessageBox::AcceptRole);
+	QMessageBox mb(QMessageBox::Critical, title, text, QMessageBox::Ok,
+		       parent);
+	mb.setButtonText(QMessageBox::Ok, QTStr("OK"));
 	mb.exec();
 }
 
-bool QTToGSWindow(QWindow *window, gs_window &gswindow)
+void QTToGSWindow(WId windowId, gs_window &gswindow)
 {
-	bool success = true;
-
 #ifdef _WIN32
-	gswindow.hwnd = (HWND)window->winId();
+	gswindow.hwnd = (HWND)windowId;
 #elif __APPLE__
-	gswindow.view = (id)window->winId();
+	gswindow.view = (id)windowId;
 #else
-	switch (obs_get_nix_platform()) {
-	case OBS_NIX_PLATFORM_X11_EGL:
-		gswindow.id = window->winId();
-		gswindow.display = obs_get_nix_platform_display();
-		break;
-#ifdef ENABLE_WAYLAND
-	case OBS_NIX_PLATFORM_WAYLAND: {
-		QPlatformNativeInterface *native =
-			QGuiApplication::platformNativeInterface();
-		gswindow.display =
-			native->nativeResourceForWindow("surface", window);
-		success = gswindow.display != nullptr;
-		break;
-	}
+	gswindow.id = windowId;
+	gswindow.display = QX11Info::display();
 #endif
-	default:
-		success = false;
-		break;
-	}
-#endif
-	return success;
 }
 
 uint32_t TranslateQtKeyboardEventModifiers(Qt::KeyboardModifiers mods)
@@ -192,34 +157,43 @@ QDataStream &operator>>(QDataStream &in,
 
 QDataStream &operator<<(QDataStream &out, const OBSScene &scene)
 {
-	return out << QString(obs_source_get_uuid(obs_scene_get_source(scene)));
+	return out << QString(obs_source_get_name(obs_scene_get_source(scene)));
 }
 
 QDataStream &operator>>(QDataStream &in, OBSScene &scene)
 {
-	QString uuid;
+	QString sceneName;
 
-	in >> uuid;
+	in >> sceneName;
 
-	OBSSourceAutoRelease source = obs_get_source_by_uuid(QT_TO_UTF8(uuid));
+	obs_source_t *source = obs_get_source_by_name(QT_TO_UTF8(sceneName));
 	scene = obs_scene_from_source(source);
 
 	return in;
 }
 
-QDataStream &operator<<(QDataStream &out, const OBSSource &source)
+QDataStream &operator<<(QDataStream &out, const OBSSceneItem &si)
 {
-	return out << QString(obs_source_get_uuid(source));
+	obs_scene_t *scene = obs_sceneitem_get_scene(si);
+	obs_source_t *source = obs_sceneitem_get_source(si);
+	return out << QString(obs_source_get_name(obs_scene_get_source(scene)))
+		   << QString(obs_source_get_name(source));
 }
 
-QDataStream &operator>>(QDataStream &in, OBSSource &source)
+QDataStream &operator>>(QDataStream &in, OBSSceneItem &si)
 {
-	QString uuid;
+	QString sceneName;
+	QString sourceName;
 
-	in >> uuid;
+	in >> sceneName >> sourceName;
 
-	OBSSourceAutoRelease source_ = obs_get_source_by_uuid(QT_TO_UTF8(uuid));
-	source = source_;
+	obs_source_t *sceneSource =
+		obs_get_source_by_name(QT_TO_UTF8(sceneName));
+
+	obs_scene_t *scene = obs_scene_from_source(sceneSource);
+	si = obs_scene_find_source(scene, QT_TO_UTF8(sourceName));
+
+	obs_source_release(sceneSource);
 
 	return in;
 }
@@ -290,7 +264,7 @@ void ExecuteFuncSafeBlockMsgBox(std::function<void()> func,
 	dlg.setWindowFlags(dlg.windowFlags() & ~Qt::WindowCloseButtonHint);
 	dlg.setWindowTitle(title);
 	dlg.setText(text);
-	dlg.setStandardButtons(QMessageBox::StandardButtons());
+	dlg.setStandardButtons(0);
 
 	auto wait = [&]() {
 		func();
@@ -348,95 +322,4 @@ bool LineEditChanged(QEvent *event)
 	}
 
 	return false;
-}
-
-void SetComboItemEnabled(QComboBox *c, int idx, bool enabled)
-{
-	QStandardItemModel *model =
-		dynamic_cast<QStandardItemModel *>(c->model());
-	QStandardItem *item = model->item(idx);
-	item->setFlags(enabled ? Qt::ItemIsSelectable | Qt::ItemIsEnabled
-			       : Qt::NoItemFlags);
-}
-
-void setThemeID(QWidget *widget, const QString &themeID)
-{
-	if (widget->property("themeID").toString() != themeID) {
-		widget->setProperty("themeID", themeID);
-
-		/* force style sheet recalculation */
-		QString qss = widget->styleSheet();
-		widget->setStyleSheet("/* */");
-		widget->setStyleSheet(qss);
-	}
-}
-
-QString SelectDirectory(QWidget *parent, QString title, QString path)
-{
-	QString dir = QFileDialog::getExistingDirectory(
-		parent, title, path,
-		QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-
-	return dir;
-}
-
-QString SaveFile(QWidget *parent, QString title, QString path,
-		 QString extensions)
-{
-	QString file =
-		QFileDialog::getSaveFileName(parent, title, path, extensions);
-
-	return file;
-}
-
-QString OpenFile(QWidget *parent, QString title, QString path,
-		 QString extensions)
-{
-	QString file =
-		QFileDialog::getOpenFileName(parent, title, path, extensions);
-
-	return file;
-}
-
-QStringList OpenFiles(QWidget *parent, QString title, QString path,
-		      QString extensions)
-{
-	QStringList files =
-		QFileDialog::getOpenFileNames(parent, title, path, extensions);
-
-	return files;
-}
-
-static void SetLabelText(QLabel *label, const QString &newText)
-{
-	if (label->text() != newText)
-		label->setText(newText);
-}
-
-void TruncateLabel(QLabel *label, QString newText, int length)
-{
-	if (newText.length() < length) {
-		label->setToolTip(QString());
-		SetLabelText(label, newText);
-		return;
-	}
-
-	label->setToolTip(newText);
-	newText.truncate(length);
-	newText += "...";
-
-	SetLabelText(label, newText);
-}
-
-void RefreshToolBarStyling(QToolBar *toolBar)
-{
-	for (QAction *action : toolBar->actions()) {
-		QWidget *widget = toolBar->widgetForAction(action);
-
-		if (!widget)
-			continue;
-
-		widget->style()->unpolish(widget);
-		widget->style()->polish(widget);
-	}
 }

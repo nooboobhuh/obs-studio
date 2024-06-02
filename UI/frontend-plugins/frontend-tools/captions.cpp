@@ -74,8 +74,7 @@ struct locale_info {
 	inline locale_info() {}
 	inline locale_info(const locale_info &) = delete;
 	inline locale_info(locale_info &&li)
-		: name(std::move(li.name)),
-		  id(li.id)
+		: name(std::move(li.name)), id(li.id)
 	{
 	}
 };
@@ -86,8 +85,7 @@ static bool valid_lang(LANGID id);
 /* ------------------------------------------------------------------------- */
 
 CaptionsDialog::CaptionsDialog(QWidget *parent)
-	: QDialog(parent),
-	  ui(new Ui_CaptionsDialog)
+	: QDialog(parent), ui(new Ui_CaptionsDialog)
 {
 	ui->setupUi(this);
 
@@ -228,9 +226,10 @@ void CaptionsDialog::on_provider_currentIndexChanged(int idx)
 
 static void caption_text(const std::string &text)
 {
-	OBSOutputAutoRelease output = obs_frontend_get_streaming_output();
+	obs_output *output = obs_frontend_get_streaming_output();
 	if (output) {
 		obs_output_output_caption_text1(output, text.c_str());
+		obs_output_release(output);
 	}
 }
 
@@ -397,7 +396,7 @@ static void obs_event(enum obs_frontend_event event, void *)
 static void save_caption_data(obs_data_t *save_data, bool saving, void *)
 {
 	if (saving) {
-		OBSDataAutoRelease obj = obs_data_create();
+		obs_data_t *obj = obs_data_create();
 
 		obs_data_set_string(obj, "source",
 				    captions->source_name.c_str());
@@ -407,11 +406,11 @@ static void save_caption_data(obs_data_t *save_data, bool saving, void *)
 				    captions->handler_id.c_str());
 
 		obs_data_set_obj(save_data, "captions", obj);
+		obs_data_release(obj);
 	} else {
 		captions->stop();
 
-		OBSDataAutoRelease obj =
-			obs_data_get_obj(save_data, "captions");
+		obs_data_t *obj = obs_data_get_obj(save_data, "captions");
 		if (!obj)
 			obj = obs_data_create();
 
@@ -425,6 +424,7 @@ static void save_caption_data(obs_data_t *save_data, bool saving, void *)
 		captions->handler_id = obs_data_get_string(obj, "provider");
 		captions->source =
 			GetWeakSourceByName(captions->source_name.c_str());
+		obs_data_release(obj);
 
 		if (enabled)
 			captions->start();

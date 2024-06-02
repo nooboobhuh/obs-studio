@@ -112,7 +112,6 @@ struct ca_encoder {
 
 	uint64_t total_samples = 0;
 	uint64_t samples_per_second = 0;
-	uint32_t priming_samples = 0;
 
 	vector<uint8_t> extra_data;
 
@@ -126,7 +125,7 @@ struct ca_encoder {
 };
 typedef struct ca_encoder ca_encoder;
 
-} // namespace
+}
 
 namespace std {
 
@@ -153,7 +152,7 @@ template<> struct default_delete<remove_pointer<AudioConverterRef>::type> {
 	}
 };
 
-} // namespace std
+}
 
 template<typename T>
 using cf_ptr = unique_ptr<typename remove_pointer<T>::type>;
@@ -176,7 +175,7 @@ log_to_dstr(DStr &str, ca_encoder *ca, const char *fmt, ...)
 
 	char array[4096];
 	va_start(args, fmt);
-	vsnprintf(array, sizeof(array), fmt, args);
+	vsnprintf(array, 4096, fmt, args);
 	va_end(args);
 
 	array[4095] = 0;
@@ -596,40 +595,15 @@ static void *aac_create(obs_data_t *settings, obs_encoder_t *encoder)
 		ca->converter, kAudioConverterCurrentOutputStreamDescription,
 		&size, &out));
 
-	AudioConverterPrimeInfo primeInfo;
-	size = sizeof(primeInfo);
-	STATUS_CHECK(AudioConverterGetProperty(
-		ca->converter, kAudioConverterPrimeInfo, &size, &primeInfo));
-
 	/*
 	 * Fix channel map differences between CoreAudio AAC, FFmpeg, Wav
-	 * New channel mappings below assume 2.1, 4.0, 4.1, 5.1, 7.1 resp.
+	 * New channel mappings below assume 2.1, 4.1, 5.1, 7.1 resp.
 	 */
-
 	if (ca->channels == 3) {
 		SInt32 channelMap3[3] = {2, 0, 1};
 		AudioConverterSetProperty(ca->converter,
 					  kAudioConverterChannelMap,
 					  sizeof(channelMap3), channelMap3);
-
-	} else if (ca->channels == 4) {
-		/*
-		 * For four channels coreaudio encoder has default channel "quad"
-		 * instead of 4.0. So explicitly set channel layout to
-		 * kAudioChannelLayoutTag_MPEG_4_0_B = (116L << 16) | 4.
-		 */
-		AudioChannelLayout inAcl = {0};
-		inAcl.mChannelLayoutTag = (116L << 16) | 4;
-		AudioConverterSetProperty(ca->converter,
-					  kAudioConverterInputChannelLayout,
-					  sizeof(inAcl), &inAcl);
-		AudioConverterSetProperty(ca->converter,
-					  kAudioConverterOutputChannelLayout,
-					  sizeof(inAcl), &inAcl);
-		SInt32 channelMap4[4] = {2, 0, 1, 3};
-		AudioConverterSetProperty(ca->converter,
-					  kAudioConverterChannelMap,
-					  sizeof(channelMap4), channelMap4);
 
 	} else if (ca->channels == 5) {
 		SInt32 channelMap5[5] = {2, 0, 1, 3, 4};
@@ -655,7 +629,6 @@ static void *aac_create(obs_data_t *settings, obs_encoder_t *encoder)
 	ca->in_bytes_required = ca->in_packets * ca->in_frame_size;
 
 	ca->out_frames_per_packet = out.mFramesPerPacket;
-	ca->priming_samples = primeInfo.leadingFrames;
 
 	ca->output_buffer_size = out.mBytesPerPacket;
 
@@ -685,9 +658,10 @@ static void *aac_create(obs_data_t *settings, obs_encoder_t *encoder)
 	}
 
 	const char *format_name =
-		out.mFormatID == kAudioFormatMPEG4AAC_HE_V2 ? "HE-AAC v2"
-		: out.mFormatID == kAudioFormatMPEG4AAC_HE  ? "HE-AAC"
-							    : "AAC";
+		out.mFormatID == kAudioFormatMPEG4AAC_HE_V2
+			? "HE-AAC v2"
+			: out.mFormatID == kAudioFormatMPEG4AAC_HE ? "HE-AAC"
+								   : "AAC";
 	CA_BLOG(LOG_INFO,
 		"settings:\n"
 		"\tmode:          %s\n"
@@ -777,12 +751,11 @@ static bool aac_encode(void *data, struct encoder_frame *frame,
 	if (!(*received_packet = packets > 0))
 		return true;
 
-	packet->pts = ca->total_samples - ca->priming_samples;
-	packet->dts = ca->total_samples - ca->priming_samples;
+	packet->pts = ca->total_samples;
+	packet->dts = ca->total_samples;
 	packet->timebase_num = 1;
 	packet->timebase_den = (uint32_t)ca->samples_per_second;
 	packet->type = OBS_ENCODER_AUDIO;
-	packet->keyframe = true;
 	packet->size = out_desc.mDataByteSize;
 	packet->data = (uint8_t *)buffer_list.mBuffers[0].mData +
 		       out_desc.mStartOffset;
@@ -1369,27 +1342,23 @@ static bool samplerate_updated(obs_properties_t *props, obs_property_t *prop,
 
 static obs_properties_t *aac_properties(void *data)
 {
+	ca_encoder *ca = static_cast<ca_encoder *>(data);
 
 	obs_properties_t *props = obs_properties_create();
 
-	obs_property_t *sample_rates = obs_properties_add_list(
+	obs_property_t *p = obs_properties_add_list(
 		props, "samplerate", obs_module_text("OutputSamplerate"),
 		OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_INT);
+	add_samplerates(p, ca);
+	obs_property_set_modified_callback(p, samplerate_updated);
 
-	obs_property_set_modified_callback(sample_rates, samplerate_updated);
-
-	obs_property_t *bit_rates = obs_properties_add_list(
-		props, "bitrate", obs_module_text("Bitrate"),
-		OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_INT);
+	p = obs_properties_add_list(props, "bitrate",
+				    obs_module_text("Bitrate"),
+				    OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_INT);
+	add_bitrates(p, ca);
 
 	obs_properties_add_bool(props, "allow he-aac",
 				obs_module_text("AllowHEAAC"));
-
-	if (data) {
-		ca_encoder *ca = static_cast<ca_encoder *>(data);
-		add_samplerates(sample_rates, ca);
-		add_bitrates(bit_rates, ca);
-	}
 
 	return props;
 }
@@ -1413,10 +1382,11 @@ bool obs_module_load(void)
 	CA_LOG(LOG_INFO, "Adding CoreAudio AAC encoder");
 #endif
 
-	struct obs_encoder_info aac_info {};
+	struct obs_encoder_info aac_info {
+	};
 	aac_info.id = "CoreAudio_AAC";
 	aac_info.type = OBS_ENCODER_AUDIO;
-	aac_info.codec = "aac";
+	aac_info.codec = "AAC";
 	aac_info.get_name = aac_get_name;
 	aac_info.destroy = aac_destroy;
 	aac_info.create = aac_create;

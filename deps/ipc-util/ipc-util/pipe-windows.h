@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Lain Bailey <lain@obsproject.com>
+ * Copyright (c) 2014 Hugh Bailey <obs.jim@gmail.com>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,7 +22,6 @@ struct ipc_pipe_server {
 	OVERLAPPED overlap;
 	HANDLE handle;
 	HANDLE ready_event;
-	HANDLE stop_event;
 	HANDLE thread;
 
 	uint8_t *read_data;

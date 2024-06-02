@@ -1,5 +1,5 @@
 /******************************************************************************
-    Copyright (C) 2023 by Lain Bailey <lain@obsproject.com>
+    Copyright (C) 2013 by Hugh Bailey <obs.jim@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,7 +20,6 @@
 #include <QApplication>
 #include <QMessageBox>
 #include <QWidget>
-#include <QWindow>
 #include <QThread>
 #include <obs.hpp>
 
@@ -28,18 +27,14 @@
 #include <memory>
 #include <vector>
 
-#define QT_UTF8(str) QString::fromUtf8(str, -1)
+#define QT_UTF8(str) QString::fromUtf8(str)
 #define QT_TO_UTF8(str) str.toUtf8().constData()
-#define MAX_LABEL_LENGTH 80
 
 class QDataStream;
-class QComboBox;
 class QWidget;
 class QLayout;
 class QString;
 struct gs_window;
-class QLabel;
-class QToolBar;
 
 class OBSMessageBox {
 public:
@@ -60,7 +55,7 @@ public:
 
 void OBSErrorBox(QWidget *parent, const char *msg, ...);
 
-bool QTToGSWindow(QWindow *window, gs_window &gswindow);
+void QTToGSWindow(WId windowId, gs_window &gswindow);
 
 uint32_t TranslateQtKeyboardEventModifiers(Qt::KeyboardModifiers mods);
 
@@ -71,8 +66,8 @@ QDataStream &operator>>(QDataStream &in,
 			std::vector<std::shared_ptr<OBSSignal>> &signal_vec);
 QDataStream &operator<<(QDataStream &out, const OBSScene &scene);
 QDataStream &operator>>(QDataStream &in, OBSScene &scene);
-QDataStream &operator<<(QDataStream &out, const OBSSource &source);
-QDataStream &operator>>(QDataStream &in, OBSSource &source);
+QDataStream &operator<<(QDataStream &out, const OBSSceneItem &si);
+QDataStream &operator>>(QDataStream &in, OBSSceneItem &si);
 
 QThread *CreateQThread(std::function<void()> func);
 
@@ -86,6 +81,19 @@ void EnableThreadedMessageBoxes(bool enable);
 void ExecThreadedWithoutBlocking(std::function<void()> func,
 				 const QString &title, const QString &text);
 
+class SignalBlocker {
+	QWidget *widget;
+	bool blocked;
+
+public:
+	inline explicit SignalBlocker(QWidget *widget_) : widget(widget_)
+	{
+		blocked = widget->blockSignals(true);
+	}
+
+	inline ~SignalBlocker() { widget->blockSignals(blocked); }
+};
+
 void DeleteLayout(QLayout *layout);
 
 static inline Qt::ConnectionType WaitConnection()
@@ -97,20 +105,3 @@ static inline Qt::ConnectionType WaitConnection()
 
 bool LineEditCanceled(QEvent *event);
 bool LineEditChanged(QEvent *event);
-
-void SetComboItemEnabled(QComboBox *c, int idx, bool enabled);
-
-void setThemeID(QWidget *widget, const QString &themeID);
-
-QString SelectDirectory(QWidget *parent, QString title, QString path);
-QString SaveFile(QWidget *parent, QString title, QString path,
-		 QString extensions);
-QString OpenFile(QWidget *parent, QString title, QString path,
-		 QString extensions);
-QStringList OpenFiles(QWidget *parent, QString title, QString path,
-		      QString extensions);
-
-void TruncateLabel(QLabel *label, QString newText,
-		   int length = MAX_LABEL_LENGTH);
-
-void RefreshToolBarStyling(QToolBar *toolBar);

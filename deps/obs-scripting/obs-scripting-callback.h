@@ -1,5 +1,5 @@
 /******************************************************************************
-    Copyright (C) 2023 by Lain Bailey <lain@obsproject.com>
+    Copyright (C) 2017 by Hugh Bailey <jim@obsproject.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -33,13 +33,8 @@ struct script_callback {
 	obs_script_t *script;
 	calldata_t extra;
 
-	volatile bool removed;
+	bool removed;
 };
-
-static inline bool script_callback_removed(struct script_callback *cb)
-{
-	return os_atomic_load_bool(&cb->removed);
-}
 
 static inline void *add_script_callback(struct script_callback **first,
 					obs_script_t *script, size_t extra_size)
@@ -59,7 +54,7 @@ static inline void *add_script_callback(struct script_callback **first,
 
 static inline void remove_script_callback(struct script_callback *cb)
 {
-	os_atomic_set_bool(&cb->removed, true);
+	cb->removed = true;
 
 	struct script_callback *next = cb->next;
 	if (next)

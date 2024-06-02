@@ -7,8 +7,6 @@
 #include <graphics/vec4.h>
 #include <graphics/vec3.h>
 #include <graphics/vec2.h>
-#include <graphics/matrix4.h>
-#include <graphics/matrix3.h>
 #include <graphics/quat.h>
 #include <graphics/image-file.h>
 #include <obs.h>
@@ -23,10 +21,9 @@
 #include <util/bmem.h>
 #include <util/base.h>
 #include "cstrcache.h"
-#include <util/platform.h>
-#include <util/config-file.h>
+#include "obs-scripting-config.h"
 
-#if defined(ENABLE_UI)
+#if UI_ENABLED
 #include "obs-frontend-api.h"
 #endif
 
@@ -34,8 +31,6 @@
 
 #define DEPRECATED_START
 #define DEPRECATED_END
-#define OBS_DEPRECATED
-#define OBS_EXTERNAL_DEPRECATED
 #define EXPORT
 
 %rename(blog) wrap_blog;
@@ -55,7 +50,6 @@ static inline void wrap_blog(int log_level, const char *message)
 %ignore blog;
 %ignore blogva;
 %ignore bcrash;
-%ignore base_set_crash_handler;
 %ignore obs_source_info;
 %ignore obs_register_source_s(const struct obs_source_info *info, size_t size);
 %ignore obs_output_set_video(obs_output_t *output, video_t *video);
@@ -88,10 +82,9 @@ static inline void wrap_blog(int log_level, const char *message)
 %include "graphics/vec4.h"
 %include "graphics/vec3.h"
 %include "graphics/vec2.h"
-%include "graphics/matrix4.h"
-%include "graphics/matrix3.h"
 %include "graphics/quat.h"
 %include "graphics/image-file.h"
+%include "obs-scripting-config.h"
 %include "obs-data.h"
 %include "obs-source.h"
 %include "obs-properties.h"
@@ -103,9 +96,7 @@ static inline void wrap_blog(int log_level, const char *message)
 %include "callback/signal.h"
 %include "util/bmem.h"
 %include "util/base.h"
-%include "util/platform.h"
-%include "util/config-file.h"
 
-#if defined(ENABLE_UI)
+#if UI_ENABLED
 %include "obs-frontend-api.h"
 #endif

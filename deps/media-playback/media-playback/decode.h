@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Lain Bailey <lain@obsproject.com>
+ * Copyright (c) 2017 Hugh Bailey <obs.jim@gmail.com>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,7 +20,7 @@
 extern "C" {
 #endif
 
-#include <util/deque.h>
+#include <util/circlebuf.h>
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -36,9 +36,18 @@ extern "C" {
 #pragma warning(pop)
 #endif
 
-#if LIBAVCODEC_VERSION_MAJOR < 60
+#if LIBAVCODEC_VERSION_MAJOR >= 58
 #define CODEC_CAP_TRUNC AV_CODEC_CAP_TRUNCATED
 #define CODEC_FLAG_TRUNC AV_CODEC_FLAG_TRUNCATED
+#else
+#define CODEC_CAP_TRUNC CODEC_CAP_TRUNCATED
+#define CODEC_FLAG_TRUNC CODEC_FLAG_TRUNCATED
+#endif
+
+#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(54, 31, 100)
+#define AV_PIX_FMT_VDTOOL AV_PIX_FMT_VIDEOTOOLBOX
+#else
+#define AV_PIX_FMT_VDTOOL AV_PIX_FMT_VDA_VLD
 #endif
 
 struct mp_media;
@@ -50,7 +59,7 @@ struct mp_decode {
 
 	AVCodecContext *decoder;
 	AVBufferRef *hw_ctx;
-	const AVCodec *codec;
+	AVCodec *codec;
 
 	int64_t last_duration;
 	int64_t frame_pts;
@@ -64,12 +73,11 @@ struct mp_decode {
 	bool frame_ready;
 	bool eof;
 	bool hw;
-	uint16_t max_luminance;
 
-	AVPacket *orig_pkt;
-	AVPacket *pkt;
+	AVPacket orig_pkt;
+	AVPacket pkt;
 	bool packet_pending;
-	struct deque packets;
+	struct circlebuf packets;
 };
 
 extern bool mp_decode_init(struct mp_media *media, enum AVMediaType type,

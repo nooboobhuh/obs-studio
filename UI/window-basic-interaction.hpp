@@ -1,5 +1,5 @@
 /******************************************************************************
-    Copyright (C) 2023 by Lain Bailey <lain@obsproject.com>
+    Copyright (C) 2014 by Hugh Bailey <obs.jim@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -65,8 +65,6 @@ public:
 
 protected:
 	virtual void closeEvent(QCloseEvent *event) override;
-	virtual bool nativeEvent(const QByteArray &eventType, void *message,
-				 qintptr *result) override;
 };
 
 typedef std::function<bool(QObject *, QEvent *)> EventFilterFunc;
@@ -82,6 +80,6 @@ protected:
 		return filter(obj, event);
 	}
 
-public:
+private:
 	EventFilterFunc filter;
 };

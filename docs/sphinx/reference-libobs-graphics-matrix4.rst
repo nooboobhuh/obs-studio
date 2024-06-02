@@ -5,7 +5,7 @@ Matrix
 
    #include <graphics/matrix4.h>
 
-.. struct:: matrix4
+.. type:: struct matrix4
 
    Matrix structure
 

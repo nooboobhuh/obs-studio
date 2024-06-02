@@ -79,7 +79,7 @@ void pulseaudio_wait();
 /**
  * Wait for accept signal from calling thread
  *
- * This function tells the pulseaudio mainloop whether the data provided to
+ * This function tells the pulseaudio mainloop wheter the data provided to
  * the callback should be retained until the calling thread executes
  * pulseaudio_accept()
  *
@@ -127,40 +127,6 @@ int_fast32_t pulseaudio_get_source_info_list(pa_source_info_cb_t cb,
  */
 int_fast32_t pulseaudio_get_source_info(pa_source_info_cb_t cb,
 					const char *name, void *userdata);
-
-/**
- * Request sink information
- *
- * The function will block until the operation was executed and the mainloop
- * called the provided callback function.
- *
- * @return negative on error
- *
- * @note The function will block until the server context is ready.
- *
- * @warning call without active locks
- */
-int_fast32_t pulseaudio_get_sink_info_list(pa_sink_info_cb_t cb,
-					   void *userdata);
-
-/**
- * Request sink information from a specific sink
- *
- * The function will block until the operation was executed and the mainloop
- * called the provided callback function.
- *
- * @param cb pointer to the callback function
- * @param name the sink name to get information for
- * @param userdata pointer to userdata the callback will be called with
- *
- * @return negative on error
- *
- * @note The function will block until the server context is ready.
- *
- * @warning call without active locks
- */
-int_fast32_t pulseaudio_get_sink_info(pa_sink_info_cb_t cb, const char *name,
-				      void *userdata);
 
 /**
  * Request server information

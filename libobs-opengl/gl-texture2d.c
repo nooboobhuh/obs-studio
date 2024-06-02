@@ -1,5 +1,5 @@
 /******************************************************************************
-    Copyright (C) 2023 by Lain Bailey <lain@obsproject.com>
+    Copyright (C) 2013 by Hugh Bailey <obs.jim@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ static bool upload_texture_2d(struct gs_texture_2d *tex, const uint8_t **data)
 	bool success;
 
 	if (!num_levels)
-		num_levels = gs_get_total_levels(tex->width, tex->height, 1);
+		num_levels = gs_get_total_levels(tex->width, tex->height);
 
 	if (!gl_bind_texture(GL_TEXTURE_2D, tex->base.texture))
 		return false;
@@ -110,7 +110,16 @@ gs_texture_t *device_texture_create(gs_device_t *device, uint32_t width,
 		if (!gl_bind_texture(GL_TEXTURE_2D, tex->base.texture))
 			goto fail;
 
-		bool did_init =
+		uint32_t row_size =
+			tex->width * gs_get_format_bpp(tex->base.format);
+		uint32_t tex_size = tex->height * row_size / 8;
+		bool compressed = gs_is_compressed_format(tex->base.format);
+		bool did_init = gl_init_face(GL_TEXTURE_2D, tex->base.gl_type,
+					     1, tex->base.gl_format,
+					     tex->base.gl_internal_format,
+					     compressed, tex->width,
+					     tex->height, tex_size, NULL);
+		did_init =
 			gl_tex_param_i(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 
 		bool did_unbind = gl_bind_texture(GL_TEXTURE_2D, 0);
@@ -136,25 +145,18 @@ static inline bool is_texture_2d(const gs_texture_t *tex, const char *func)
 
 void gs_texture_destroy(gs_texture_t *tex)
 {
+	struct gs_texture_2d *tex2d = (struct gs_texture_2d *)tex;
 	if (!tex)
+		return;
+
+	if (!is_texture_2d(tex, "gs_texture_destroy"))
 		return;
 
 	if (tex->cur_sampler)
 		gs_samplerstate_destroy(tex->cur_sampler);
 
-	if (!tex->is_dummy && tex->is_dynamic) {
-		if (tex->type == GS_TEXTURE_2D) {
-			struct gs_texture_2d *tex2d =
-				(struct gs_texture_2d *)tex;
-			if (tex2d->unpack_buffer)
-				gl_delete_buffers(1, &tex2d->unpack_buffer);
-		} else if (tex->type == GS_TEXTURE_3D) {
-			struct gs_texture_3d *tex3d =
-				(struct gs_texture_3d *)tex;
-			if (tex3d->unpack_buffer)
-				gl_delete_buffers(1, &tex3d->unpack_buffer);
-		}
-	}
+	if (!tex->is_dummy && tex->is_dynamic && tex2d->unpack_buffer)
+		gl_delete_buffers(1, &tex2d->unpack_buffer);
 
 	if (tex->texture)
 		gl_delete_textures(1, &tex->texture);
@@ -251,22 +253,19 @@ failed:
 
 bool gs_texture_is_rect(const gs_texture_t *tex)
 {
-	if (tex->type == GS_TEXTURE_3D)
-		return false;
-
-	if (!is_texture_2d(tex, "gs_texture_is_rect")) {
+	const struct gs_texture_2d *tex2d = (const struct gs_texture_2d *)tex;
+	if (!is_texture_2d(tex, "gs_texture_unmap")) {
 		blog(LOG_ERROR, "gs_texture_is_rect (GL) failed");
 		return false;
 	}
 
-	const struct gs_texture_2d *tex2d = (const struct gs_texture_2d *)tex;
 	return tex2d->base.gl_target == GL_TEXTURE_RECTANGLE;
 }
 
 void *gs_texture_get_obj(gs_texture_t *tex)
 {
 	struct gs_texture_2d *tex2d = (struct gs_texture_2d *)tex;
-	if (!is_texture_2d(tex, "gs_texture_get_obj")) {
+	if (!is_texture_2d(tex, "gs_texture_unmap")) {
 		blog(LOG_ERROR, "gs_texture_get_obj (GL) failed");
 		return NULL;
 	}

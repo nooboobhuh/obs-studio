@@ -1,5 +1,5 @@
 /******************************************************************************
-    Copyright (C) 2023 by Lain Bailey <lain@obsproject.com>
+    Copyright (C) 2014 by Hugh Bailey <obs.jim@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -27,9 +27,8 @@ private:
 	std::unique_ptr<Ui::OBSLogReply> ui;
 
 public:
-	OBSLogReply(QWidget *parent, const QString &url, const bool crash);
+	OBSLogReply(QWidget *parent, const QString &url);
 
 private slots:
 	void on_copyURL_clicked();
-	void on_analyzeURL_clicked();
 };

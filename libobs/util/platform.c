@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Lain Bailey <lain@obsproject.com>
+ * Copyright (c) 2013-2014 Hugh Bailey <obs.jim@gmail.com>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -19,14 +19,12 @@
 #include <time.h>
 #include <errno.h>
 #include <stdlib.h>
-#include <inttypes.h>
 #include <locale.h>
 #include "c99defs.h"
 #include "platform.h"
 #include "bmem.h"
 #include "utf8.h"
 #include "dstr.h"
-#include "obs.h"
 
 FILE *os_wfopen(const wchar_t *path, const char *mode)
 {
@@ -340,14 +338,12 @@ int64_t os_get_file_size(const char *path)
 
 size_t os_mbs_to_wcs(const char *str, size_t len, wchar_t *dst, size_t dst_size)
 {
-	UNUSED_PARAMETER(len);
-
 	size_t out_len;
 
 	if (!str)
 		return 0;
 
-	out_len = dst ? (dst_size - 1) : mbstowcs(NULL, str, 0);
+	out_len = dst ? (dst_size - 1) : mbstowcs(NULL, str, len);
 
 	if (dst) {
 		if (!dst_size)
@@ -390,14 +386,12 @@ size_t os_utf8_to_wcs(const char *str, size_t len, wchar_t *dst,
 
 size_t os_wcs_to_mbs(const wchar_t *str, size_t len, char *dst, size_t dst_size)
 {
-	UNUSED_PARAMETER(len);
-
 	size_t out_len;
 
 	if (!str)
 		return 0;
 
-	out_len = dst ? (dst_size - 1) : wcstombs(NULL, str, 0);
+	out_len = dst ? (dst_size - 1) : wcstombs(NULL, str, len);
 
 	if (dst) {
 		if (!dst_size)
@@ -559,8 +553,7 @@ static inline void from_locale(char *buffer)
 double os_strtod(const char *str)
 {
 	char buf[64];
-	strncpy(buf, str, sizeof(buf) - 1);
-	buf[sizeof(buf) - 1] = 0;
+	snprintf(buf, 64, "%s", str);
 	to_locale(buf);
 	return strtod(buf, NULL);
 }
@@ -654,17 +647,25 @@ int os_mkdirs(const char *dir)
 
 const char *os_get_path_extension(const char *path)
 {
-	for (size_t pos = strlen(path); pos > 0; pos--) {
-		switch (path[pos - 1]) {
-		case '.':
-			return path + pos - 1;
-		case '/':
-		case '\\':
-			return NULL;
-		}
-	}
+	struct dstr temp;
+	size_t pos = 0;
+	char *period;
+	char *slash;
 
-	return NULL;
+	dstr_init_copy(&temp, path);
+	dstr_replace(&temp, "\\", "/");
+
+	slash = strrchr(temp.array, '/');
+	period = strrchr(temp.array, '.');
+	if (period)
+		pos = (size_t)(period - temp.array);
+
+	dstr_free(&temp);
+
+	if (!period || slash > period)
+		return NULL;
+
+	return path + pos;
 }
 
 static inline bool valid_string(const char *str)
@@ -707,8 +708,6 @@ char *os_generate_formatted_filename(const char *extension, bool space,
 	time_t now = time(0);
 	struct tm *cur_time;
 	cur_time = localtime(&now);
-	struct obs_video_info ovi;
-	obs_get_video_info(&ovi);
 
 	const size_t spec_count = 23;
 	static const char *spec[][2] = {
@@ -729,9 +728,10 @@ char *os_generate_formatted_filename(const char *extension, bool space,
 	dstr_init_copy(&sf, format);
 
 	while (pos < sf.len) {
-		const char *cmp = sf.array + pos;
 		for (size_t i = 0; i < spec_count && !convert[0]; i++) {
 			size_t len = strlen(spec[i][0]);
+
+			const char *cmp = sf.array + pos;
 
 			if (astrcmp_n(cmp, spec[i][0], len) == 0) {
 				if (strlen(spec[i][1]))
@@ -744,42 +744,6 @@ char *os_generate_formatted_filename(const char *extension, bool space,
 				dstr_copy(&c, convert);
 				if (c.len && valid_string(c.array))
 					replace_text(&sf, pos, len, convert);
-			}
-		}
-
-		if (!convert[0]) {
-			if (astrcmp_n(cmp, "%FPS", 4) == 0) {
-				if (ovi.fps_den <= 1) {
-					snprintf(convert, sizeof(convert), "%u",
-						 ovi.fps_num);
-				} else {
-					const double obsFPS =
-						(double)ovi.fps_num /
-						(double)ovi.fps_den;
-					snprintf(convert, sizeof(convert),
-						 "%.2f", obsFPS);
-				}
-				replace_text(&sf, pos, 4, convert);
-
-			} else if (astrcmp_n(cmp, "%CRES", 5) == 0) {
-				snprintf(convert, sizeof(convert), "%ux%u",
-					 ovi.base_width, ovi.base_height);
-				replace_text(&sf, pos, 5, convert);
-
-			} else if (astrcmp_n(cmp, "%ORES", 5) == 0) {
-				snprintf(convert, sizeof(convert), "%ux%u",
-					 ovi.output_width, ovi.output_height);
-				replace_text(&sf, pos, 5, convert);
-
-			} else if (astrcmp_n(cmp, "%VF", 3) == 0) {
-				strcpy(convert, get_video_format_name(
-							ovi.output_format));
-				replace_text(&sf, pos, 3, convert);
-
-			} else if (astrcmp_n(cmp, "%s", 2) == 0) {
-				snprintf(convert, sizeof(convert), "%" PRId64,
-					 (int64_t)now);
-				replace_text(&sf, pos, 2, convert);
 			}
 		}
 
@@ -796,11 +760,8 @@ char *os_generate_formatted_filename(const char *extension, bool space,
 	if (!space)
 		dstr_replace(&sf, " ", "_");
 
-	if (extension && *extension) {
-		dstr_cat_ch(&sf, '.');
-		dstr_cat(&sf, extension);
-	}
-
+	dstr_cat_ch(&sf, '.');
+	dstr_cat(&sf, extension);
 	dstr_free(&c);
 
 	if (sf.len > 255)

@@ -3,7 +3,7 @@ Threading
 
 Libobs provides a number of helper functions/types specifically for
 threading.  The threading header will additionally provide access to
-pthread functions even on Windows.
+pthread functions even on windows.
 
 .. code:: cpp
 
@@ -73,7 +73,7 @@ Event Functions
    
                         - 0 - successful
                         - ETIMEDOUT - Timed out
-                        - EINVAL - An unexpected error occurred
+                        - EINVAL - An unexpected error occured
 
 ----------------------
 
@@ -86,7 +86,7 @@ Event Functions
    
                         - 0 - successful
                         - EAGAIN - The event is not signaled
-                        - EINVAL - An unexpected error occurred
+                        - EINVAL - An unexpected error occured
 
 ----------------------
 
@@ -123,7 +123,7 @@ Semaphore Functions
 
 .. function:: void os_sem_destroy(os_sem_t *sem)
 
-   Destroys a semaphore object.
+   Destroys a sempahore object.
 
    :param sem:   Semaphore object
 
@@ -140,7 +140,7 @@ Semaphore Functions
 
 .. function:: int  os_sem_wait(os_sem_t *sem)
 
-   Decrements the semaphore or waits until the semaphore has been
+   Decrements the semphore or waits until the semaphore has been
    incremented.
 
    :param sem:   Semaphore object
@@ -164,21 +164,9 @@ Atomic Inline Functions
 
 ---------------------
 
-.. function:: void os_atomic_store_long(volatile long *ptr, long val)
-
-   Stores the value of a long variable atomically.
-
----------------------
-
 .. function:: long os_atomic_set_long(volatile long *ptr, long val)
 
-   Exchanges the value of a long variable atomically. Badly named.
-
----------------------
-
-.. function:: long os_atomic_exchange_long(volatile long *ptr, long val)
-
-   Exchanges the value of a long variable atomically. Properly named.
+   Sets the value of a long variable atomically.
 
 ---------------------
 
@@ -194,21 +182,9 @@ Atomic Inline Functions
 
 ---------------------
 
-.. function:: void os_atomic_store_bool(volatile bool *ptr, bool val)
-
-   Stores the value of a boolean variable atomically.
-
----------------------
-
 .. function:: bool os_atomic_set_bool(volatile bool *ptr, bool val)
 
-   Exchanges the value of a boolean variable atomically. Badly named.
-
----------------------
-
-.. function:: bool os_atomic_exchange_bool(volatile bool *ptr, bool val)
-
-   Exchanges the value of a boolean variable atomically. Properly named.
+   Sets the value of a boolean variable atomically.
 
 ---------------------
 

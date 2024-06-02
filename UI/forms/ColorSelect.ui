@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>126</width>
-    <height>70</height>
+    <width>98</width>
+    <height>61</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -20,7 +20,9 @@
    <string>Form</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">QPushButton { border: 1px solid black; margin: 0; padding: 0; }</string>
+   <string notr="true">QPushButton {
+	border: 1px solid black;
+}</string>
   </property>
   <layout class="QGridLayout" name="gridLayout_2">
    <item row="0" column="0">
@@ -35,14 +37,14 @@
        </property>
        <property name="minimumSize">
         <size>
-         <width>22</width>
-         <height>22</height>
+         <width>16</width>
+         <height>16</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>22</width>
-         <height>22</height>
+         <width>16</width>
+         <height>16</height>
         </size>
        </property>
        <property name="styleSheet">
@@ -66,14 +68,14 @@
        </property>
        <property name="minimumSize">
         <size>
-         <width>22</width>
-         <height>22</height>
+         <width>16</width>
+         <height>16</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>22</width>
-         <height>22</height>
+         <width>16</width>
+         <height>16</height>
         </size>
        </property>
        <property name="text">
@@ -94,14 +96,14 @@
        </property>
        <property name="minimumSize">
         <size>
-         <width>22</width>
-         <height>22</height>
+         <width>16</width>
+         <height>16</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>22</width>
-         <height>22</height>
+         <width>16</width>
+         <height>16</height>
         </size>
        </property>
        <property name="text">
@@ -122,14 +124,14 @@
        </property>
        <property name="minimumSize">
         <size>
-         <width>22</width>
-         <height>22</height>
+         <width>16</width>
+         <height>16</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>22</width>
-         <height>22</height>
+         <width>16</width>
+         <height>16</height>
         </size>
        </property>
        <property name="text">
@@ -150,14 +152,14 @@
        </property>
        <property name="minimumSize">
         <size>
-         <width>22</width>
-         <height>22</height>
+         <width>16</width>
+         <height>16</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>22</width>
-         <height>22</height>
+         <width>16</width>
+         <height>16</height>
         </size>
        </property>
        <property name="text">
@@ -178,14 +180,14 @@
        </property>
        <property name="minimumSize">
         <size>
-         <width>22</width>
-         <height>22</height>
+         <width>16</width>
+         <height>16</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>22</width>
-         <height>22</height>
+         <width>16</width>
+         <height>16</height>
         </size>
        </property>
        <property name="text">
@@ -206,14 +208,14 @@
        </property>
        <property name="minimumSize">
         <size>
-         <width>22</width>
-         <height>22</height>
+         <width>16</width>
+         <height>16</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>22</width>
-         <height>22</height>
+         <width>16</width>
+         <height>16</height>
         </size>
        </property>
        <property name="text">
@@ -234,14 +236,14 @@
        </property>
        <property name="minimumSize">
         <size>
-         <width>22</width>
-         <height>22</height>
+         <width>16</width>
+         <height>16</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>22</width>
-         <height>22</height>
+         <width>16</width>
+         <height>16</height>
         </size>
        </property>
        <property name="text">

@@ -12,7 +12,6 @@ void MenuButton::keyPressEvent(QKeyEvent *event)
 			emit clicked();
 			return;
 		case Qt::Key_Down:
-		case Qt::Key_Space:
 			showMenu();
 			return;
 		}
@@ -24,7 +23,7 @@ void MenuButton::keyPressEvent(QKeyEvent *event)
 void MenuButton::mousePressEvent(QMouseEvent *event)
 {
 	if (menu()) {
-		if (width() - event->pos().x() <= 30)
+		if (width() - event->x() <= 15)
 			showMenu();
 		else
 			setDown(true);

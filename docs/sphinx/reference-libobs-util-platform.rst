@@ -154,14 +154,6 @@ These functions are roughly equivalent to dlopen/dlsym/dlclose.
 
 ---------------------
 
-.. function:: bool os_is_obs_plugin(const char *path)
-
-   Returns true if the path is a dynamic library that looks like an OBS plugin.
-
-   Currently only needed on Windows for performance reasons.
-
----------------------
-
 
 CPU Usage Functions
 -------------------
@@ -191,13 +183,6 @@ Sleep/Time Functions
 .. function:: bool os_sleepto_ns(uint64_t time_target)
 
    Sleeps to a specific time with high precision, in nanoseconds.
-
----------------------
-
-.. function:: bool os_sleepto_ns_fast(uint64_t time_target)
-
-   Sleeps to a specific time without high precision, in nanoseconds.
-   The function won't return until reaching the specific time.
 
 ---------------------
 
@@ -245,15 +230,15 @@ Other Path/File Functions
 
 .. function:: const char *os_get_path_extension(const char *path)
 
-   Returns the extension portion of a path string, including the dot (.).
+   Returns the extension portion of a path string.
 
 ---------------------
 
-.. type:: struct os_dir os_dir_t
+.. type:: typedef struct os_dir os_dir_t
 
    A directory object.
 
-.. struct:: os_dirent
+.. type:: struct os_dirent
 
    A directory entry record.
 
@@ -285,10 +270,10 @@ Other Path/File Functions
 
 ---------------------
 
-.. struct:: os_globent
+.. type:: struct os_globent
 
    A glob entry.
-
+   
 .. member:: char *os_globent.path
 
    The full path to the glob entry.
@@ -297,7 +282,7 @@ Other Path/File Functions
 
    *true* if the glob entry is a directory, *false* otherwise.
 
-.. struct:: os_glob_info
+.. type:: struct os_glob_info
 
    A glob object.
 
@@ -309,7 +294,7 @@ Other Path/File Functions
 
    Array of glob entries.
 
-.. type:: struct os_glob_info os_glob_t
+.. type:: typedef struct os_glob_info os_glob_t
 
 ---------------------
 
@@ -370,7 +355,7 @@ Other Path/File Functions
 
 .. function:: int os_copyfile(const char *file_in, const char *file_out)
 
-   Copies a file.
+   Copys a file.
 
 ---------------------
 
@@ -394,8 +379,8 @@ Sleep-Inhibition Functions
 These functions/types are used to inhibit the computer from going to
 sleep.
 
-.. struct:: os_inhibit_info
-.. type:: struct os_inhibit_info os_inhibit_t
+.. type:: struct os_inhibit_info
+.. type:: typedef struct os_inhibit_info os_inhibit_t
 
 ---------------------
 
@@ -447,15 +432,7 @@ Other Functions
 
 ---------------------
 
-.. function:: uint64_t os_get_sys_total_size(void)
-
-   Returns the amount of memory installed.
-
-   .. versionadded:: 29.0.0
-
----------------------
-
-.. struct:: os_proc_memory_usage
+.. type:: struct os_proc_memory_usage
 
    Memory usage structure.
 
@@ -467,7 +444,7 @@ Other Functions
 
    Virtual size.
 
-.. type:: struct os_proc_memory_usage os_proc_memory_usage_t
+.. type:: typedef struct os_proc_memory_usage os_proc_memory_usage_t
 
 ---------------------
 
@@ -486,22 +463,3 @@ Other Functions
 .. function:: uint64_t os_get_proc_virtual_size(void)
 
    Returns the virtual memory size of the current process.
-
----------------------
-
-.. function:: bool os_get_emulation_status(void)
-
-   Returns true if the current process is an x64 binary and is being emulated or translated
-   by the host operating system. On macOS, it returns true when an x64 binary is 
-   being translated by Rosetta and running on Apple Silicon Macs. On Windows, it 
-   returns true when an x64 binary is being emulated on Windows ARM64 PCs. On all other 
-   platforms, it will always returns false.
-
-----------------------
-
-.. function:: char *os_generate_uuid(void)
-
-   Creates a version 4 UUID and returns a NULL-terminated 36-character string.
-   Must be freed with :c:func:`bfree()`.
-
-   .. versionadded:: 29.1

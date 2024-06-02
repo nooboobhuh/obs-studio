@@ -7,6 +7,14 @@ class BrowserDock;
 class RestreamAuth : public OAuthStreamKey {
 	Q_OBJECT
 
+	QSharedPointer<BrowserDock> chat;
+	QSharedPointer<BrowserDock> info;
+	QSharedPointer<BrowserDock> channels;
+
+	QSharedPointer<QAction> chatMenu;
+	QSharedPointer<QAction> infoMenu;
+	QSharedPointer<QAction> channelMenu;
+
 	bool uiLoaded = false;
 
 	virtual bool RetryLogin() override;
@@ -20,8 +28,6 @@ class RestreamAuth : public OAuthStreamKey {
 
 public:
 	RestreamAuth(const Def &d);
-	~RestreamAuth();
 
-	static std::shared_ptr<Auth> Login(QWidget *parent,
-					   const std::string &service_name);
+	static std::shared_ptr<Auth> Login(QWidget *parent);
 };

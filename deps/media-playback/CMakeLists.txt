@@ -1,28 +1,51 @@
-cmake_minimum_required(VERSION 3.22...3.25)
+project(media-playback)
 
-find_package(FFmpeg REQUIRED avcodec avdevice avutil avformat)
+find_package(FFmpeg REQUIRED
+	COMPONENTS avcodec avdevice avutil avformat)
 
-add_library(media-playback INTERFACE)
-add_library(OBS::media-playback ALIAS media-playback)
+include_directories(
+	${CMAKE_SOURCE_DIR}/libobs
+	${FFMPEG_INCLUDE_DIRS}
+	)
 
-target_sources(
-  media-playback
-  INTERFACE # cmake-format: sortable
-            media-playback/cache.c
-            media-playback/cache.h
-            media-playback/closest-format.h
-            media-playback/decode.c
-            media-playback/decode.h
-            media-playback/media-playback.c
-            media-playback/media-playback.h
-            media-playback/media.c
-            media-playback/media.h)
+set(media-playback_HEADERS
+	media-playback/closest-format.h
+	media-playback/decode.h
+	media-playback/media.h
+	)
+set(media-playback_SOURCES
+	media-playback/decode.c
+	media-playback/media.c
+	)
 
-target_include_directories(media-playback INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}")
+add_library(media-playback STATIC
+	${media-playback_HEADERS}
+	${media-playback_SOURCES}
+	)
 
-if(OBS_CMAKE_VERSION VERSION_LESS 3.0)
-  target_compile_options(media-playback INTERFACE ${ARCH_SIMD_FLAGS})
-  target_compile_definitions(media-playback INTERFACE ${ARCH_SIMD_DEFINES})
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(powerpc|ppc)64le")
+	target_compile_options(media-playback
+			PUBLIC
+			-mvsx)
+	add_compile_definitions(NO_WARN_X86_INTRINSICS)
+elseif(NOT MSVC)
+	target_compile_options(media-playback
+		PUBLIC
+			-mmmx
+			-msse
+			-msse2)
 endif()
 
-target_link_libraries(media-playback INTERFACE FFmpeg::avcodec FFmpeg::avdevice FFmpeg::avutil FFmpeg::avformat)
+target_include_directories(media-playback
+	PUBLIC .
+	)
+
+if(NOT MSVC)
+        if(NOT MINGW)
+                target_compile_options(media-playback PRIVATE -fPIC)
+        endif()
+endif()
+
+target_link_libraries(media-playback
+	${FFMPEG_LIBRARIES}
+	)

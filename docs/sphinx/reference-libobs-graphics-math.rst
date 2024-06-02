@@ -1,17 +1,17 @@
 Extra Math Functions/Macros
 ===========================
 
-.. code:: cpp
+.. code:: 
 
    #include <graphics/math-extra.h>
 
 Helper functions/macros for graphics math.
 
-.. macro:: RAD(val)
+.. function:: RAD(val)
 
    Macro that converts a floating point degrees value to radians.
 
-.. macro:: DEG(val)
+.. function:: DEG(val)
 
    Macro that converts a floating point radians value to degrees.
 

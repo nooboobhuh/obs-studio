@@ -10,9 +10,11 @@ Scripting can be accessed in OBS Studio via the Tools menu -> Scripts
 option, which will bring up the scripting dialog.  Scripts can be added,
 removed, and reloaded in real time while the program is running.
 
-**NOTE:** To use Python on Windows or macOS, you must download and install a
-Python version that matches your OBS architecture.  Then, in the scripting
-dialog, you must set the path to the Python install in the "Python Settings" tab.
+**NOTE:** On windows, currently only Python 3.6 is supported.  To use
+Python on windows, you must download and install Python 3.6.x "x86-64"
+for OBS 64bit (64bit is the default), or Python 3.6.x "x86" if using OBS
+32bit.  Then, in the scripting dialog, you must set the path to the
+Python 3.6.x install in the "Python Settings" tab.
 
 All API bindings are provided through the **obspython** module in
 Python, and the **obslua** module in Lua.
@@ -34,11 +36,6 @@ Script Function Exports
 
 There are a number of global functions that scripts can optionally
 provide:
-
-.. py:function:: script_description()
-
-   Called to retrieve a description string to be displayed to the user
-   in the Scripts window.
 
 .. py:function:: script_load(settings)
 
@@ -120,10 +117,7 @@ without necessarily having to lock scripts/interpreters every frame.
 
 .. py:function:: timer_add(callback, milliseconds)
 
-    Adds an timer callback which triggers every *milliseconds*.
-
-    Note: Using instance methods as callbacks is not supported. Always
-    use module methods.
+    Adds an timer callback which triggers every *millseconds*.
 
 .. py:function:: timer_remove(callback)
 
@@ -205,14 +199,6 @@ modules/namespaces).
    :return:      List of scene items.  Release with
                  :py:func:`sceneitem_list_release()`.
 
-.. py:function:: obs_sceneitem_group_enum_items(group)
-
-   Enumerates scene items within a group.
-
-   :param group: obs_sceneitem_t object to enumerate items from.
-   :return:      List of scene items.  Release with
-                 :py:func:`sceneitem_list_release()`.
-
 .. py:function:: obs_add_main_render_callback(callback)
 
    **Lua only:** Adds a primary output render callback.  This callback
@@ -288,10 +274,8 @@ modules/namespaces).
 
 .. py:function:: obs_properties_add_button(properties, setting_name, text, callback)
 
-   Adds a button property to an obs_properties_t object.  The callback
-   takes two parameters:  the first parameter is the obs_properties_t
-   object, and the second parameter is the obs_property_t for the
-   button.
+   Adds a button properties to an obs_properties_t object.  The callback
+   takes no parameters.
 
    :param properties:   An obs_properties_t object.
    :param setting_name: A setting identifier string.

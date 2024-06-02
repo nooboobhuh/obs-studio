@@ -6,7 +6,6 @@
 #include <QStackedWidget>
 #include <QWidget>
 
-#include <obs.h>
 #include <media-io/frame-rate.h>
 
 #include <vector>

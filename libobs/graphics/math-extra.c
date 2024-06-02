@@ -1,5 +1,5 @@
 /******************************************************************************
-    Copyright (C) 2023 by Lain Bailey <lain@obsproject.com>
+    Copyright (C) 2013 by Hugh Bailey <obs.jim@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -72,7 +72,7 @@ float calc_torquef(float val1, float val2, float torque, float min_adjust,
 	bool over;
 
 	if (close_float(val1, val2, EPSILON))
-		return val2;
+		return val1;
 
 	dist = (val2 - val1) * torque;
 	over = dist > 0.0f;
@@ -101,7 +101,7 @@ void calc_torque(struct vec3 *dst, const struct vec3 *v1, const struct vec3 *v2,
 	float orig_dist, torque_dist, adjust_dist;
 
 	if (vec3_close(v1, v2, EPSILON)) {
-		vec3_copy(dst, v2);
+		vec3_copy(dst, v1);
 		return;
 	}
 

@@ -1,6 +1,5 @@
 #include "window-dock.hpp"
 #include "obs-app.hpp"
-#include "window-basic-main.hpp"
 
 #include <QMessageBox>
 #include <QCheckBox>
@@ -28,15 +27,10 @@ void OBSDock::closeEvent(QCloseEvent *event)
 
 	bool warned = config_get_bool(App()->GlobalConfig(), "General",
 				      "WarnedAboutClosingDocks");
-	if (!OBSBasic::Get()->Closing() && !warned) {
+	if (!warned) {
 		QMetaObject::invokeMethod(App(), "Exec", Qt::QueuedConnection,
 					  Q_ARG(VoidFunc, msgBox));
 	}
 
 	QDockWidget::closeEvent(event);
-}
-
-void OBSDock::showEvent(QShowEvent *event)
-{
-	QDockWidget::showEvent(event);
 }

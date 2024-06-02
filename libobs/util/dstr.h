@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Lain Bailey <lain@obsproject.com>
+ * Copyright (c) 2013 Hugh Bailey <obs.jim@gmail.com>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -229,7 +229,8 @@ static inline void dstr_ensure_capacity(struct dstr *dst, const size_t new_size)
 
 static inline void dstr_copy_dstr(struct dstr *dst, const struct dstr *src)
 {
-	dstr_free(dst);
+	if (dst->array)
+		dstr_free(dst);
 
 	if (src->len) {
 		dstr_ensure_capacity(dst, src->len + 1);
